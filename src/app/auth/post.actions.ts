@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 
 // Sửa hàm upsertPost để trả về message khi thành công
 export async function upsertPost(formData: FormData) {
-    const supabase = createServer();
+    const supabase = await createServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -54,7 +54,7 @@ export async function upsertPost(formData: FormData) {
 
 // Xử lý xóa bài viết
 export async function deletePost(postId: number) {
-    const supabase = createServer();
+    const supabase = await createServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {

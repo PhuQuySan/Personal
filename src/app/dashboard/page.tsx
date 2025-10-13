@@ -25,7 +25,7 @@ interface UserLink {
 
 // Hàm lấy dữ liệu người dùng và liên kết
 async function getDashboardData() {
-    const supabase = createServer();
+    const supabase = await createServer();
 
     // 1. Lấy thông tin User
     const { data: { user } } = await supabase.auth.getUser();
@@ -68,7 +68,8 @@ async function getDashboardData() {
 }
 
 export default async function DashboardPage() {
-    const { user, profile, links } = await getDashboardData();
+    // const { user, profile, links } = await getDashboardData();
+    const { profile, links } = await getDashboardData();
     const isSuperElite = profile.user_role === 'super_elite';
     const isDemoUser = profile.user_role === 'demo';
 

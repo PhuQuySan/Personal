@@ -19,7 +19,7 @@ export async function signIn(formData: FormData) {
     }
 
     // 2. Xử lý Đăng nhập Supabase (Sử dụng email)
-    const supabase = createServer();
+    const supabase = await createServer();
     const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -41,7 +41,7 @@ export async function signUp(formData: FormData) {
 
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
-    const supabase = createServer();
+    const supabase = await createServer();
 
     // 1. Tạo người dùng
     const { error } = await supabase.auth.signUp({
@@ -61,7 +61,7 @@ export async function signUp(formData: FormData) {
 
 // Xử lý Đăng xuất Supabase/Demo
 export async function signOut() {
-    const supabase = createServer();
+    const supabase = await createServer();
 
     // Xóa session Supabase
     await supabase.auth.signOut();

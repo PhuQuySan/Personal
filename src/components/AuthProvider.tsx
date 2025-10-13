@@ -17,16 +17,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const TOKEN_STORAGE_KEY = 'authToken';
 
 // Custom Hook để tạo token demo (giả lập JWT)
-const createDemoToken = (): string => {
-    // Trong thực tế, đây sẽ là JWT được tạo và ký bởi máy chủ
-    // Ở đây, ta chỉ tạo một chuỗi đơn giản để mô phỏng sự tồn tại của token
-    const payload = {
-        userId: 'elite-admin',
-        role: 'elite_leader',
-        exp: Date.now() + 3600 * 1000, // Token hết hạn sau 1 giờ
-    };
-    return btoa(JSON.stringify(payload)); // Mã hóa Base64 đơn giản
-};
+// const createDemoToken = (): string => {
+//     // Trong thực tế, đây sẽ là JWT được tạo và ký bởi máy chủ
+//     // Ở đây, ta chỉ tạo một chuỗi đơn giản để mô phỏng sự tồn tại của token
+//     const payload = {
+//         userId: 'elite-admin',
+//         role: 'elite_leader',
+//         exp: Date.now() + 3600 * 1000, // Token hết hạn sau 1 giờ
+//     };
+//     return btoa(JSON.stringify(payload)); // Mã hóa Base64 đơn giản
+// };
 
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

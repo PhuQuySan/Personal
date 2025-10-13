@@ -3,7 +3,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import {AuthProvider} from "@/components/AuthProvider";
+// import {AuthProvider} from "@/components/AuthProvider";
 import {Navigation} from "@/components/Navigation"; // Đảm bảo CSS được import
 
 const inter = Inter({ subsets: ["latin"] });

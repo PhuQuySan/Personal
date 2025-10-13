@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 
 // Xử lý tạo/cập nhật liên kết người dùng
 export async function upsertUserLink(formData: FormData) {
-    const supabase = createServer();
+    const supabase = await createServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {

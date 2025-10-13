@@ -5,8 +5,10 @@ import { signUp } from '@/app/auth/actions';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { UserPlus } from 'lucide-react';
+import { Suspense } from 'react';
 
-export default function SignUpPage() {
+// Tách component chính ra để sử dụng useSearchParams
+function SignUpContent() {
     const searchParams = useSearchParams();
     const errorMessage = searchParams.get('error');
 
@@ -94,5 +96,21 @@ export default function SignUpPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+// Component chính với Suspense boundary
+export default function SignUpPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
+                <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600 dark:text-gray-400">Đang tải...</p>
+                </div>
+            </div>
+        }>
+            <SignUpContent />
+        </Suspense>
     );
 }

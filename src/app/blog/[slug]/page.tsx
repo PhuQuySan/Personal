@@ -5,31 +5,46 @@ import { Calendar, Tag, User, Lock } from 'lucide-react';
 import Link from "next/link";
 
 interface PostPageProps {
-    params: {
+    params: Promise<{
         slug: string;
-    };
+    }>;
 }
 
+// ✅ Sửa interface: profiles có thể là mảng hoặc đối tượng
 interface Post {
     title: string;
     content: string;
     tag: string | null;
     created_at: string;
-    access_level: 'public' | 'elite' | 'super_elite'; // Loại truy cập
+    access_level: 'public' | 'elite' | 'super_elite';
     profiles: {
+        full_name: string | null;
+    }[] | { // Cho phép cả mảng và đối tượng
         full_name: string | null;
     } | null;
 }
 
+// ✅ Thêm hàm helper để lấy full_name an toàn
+function getFullName(profiles: any): string | null {
+    if (!profiles) return null;
+
+    // Nếu profiles là mảng, lấy phần tử đầu tiên
+    if (Array.isArray(profiles)) {
+        return profiles[0]?.full_name || null;
+    }
+
+    // Nếu profiles là đối tượng, lấy trực tiếp
+    return profiles.full_name || null;
+}
+
 export default async function PostPage({ params }: PostPageProps) {
     const supabase = createServer();
-    const slug = params.slug;
+    const { slug } = await params; // Await params
 
     // Lấy thông tin người dùng đang truy cập
     const { data: { user } } = await supabase.auth.getUser();
 
     // TẠM THỜI: Giả định vai trò người dùng (Super Elite = admin)
-    // Trong thực tế, bạn phải fetch từ bảng profiles
     const userRole = user?.email?.includes('@admin.com') ? 'super_elite' : (user ? 'elite' : 'normal');
 
     // 1. Fetch Bài viết
@@ -43,15 +58,15 @@ export default async function PostPage({ params }: PostPageProps) {
         return notFound();
     }
 
-    // 2. LOGIC PHÂN QUYỀN TRUY CẬP (Client side check)
+    // 2. LOGIC PHÂN QUYỀN TRUY CẬP
     let isAuthorized = false;
 
     if (post.access_level === 'public') {
-        isAuthorized = true; // Ai cũng xem được
+        isAuthorized = true;
     } else if (post.access_level === 'elite' && (userRole === 'elite' || userRole === 'super_elite')) {
-        isAuthorized = true; // Chỉ cần đăng nhập
+        isAuthorized = true;
     } else if (post.access_level === 'super_elite' && userRole === 'super_elite') {
-        isAuthorized = true; // Chỉ có admin xem được
+        isAuthorized = true;
     }
 
     if (!isAuthorized) {
@@ -75,8 +90,7 @@ export default async function PostPage({ params }: PostPageProps) {
         );
     }
 
-    // 3. Hiển thị Nội dung Bài viết (Nếu được phép)
-
+    // 3. Hiển thị Nội dung Bài viết
     return (
         <article className="min-h-screen bg-white dark:bg-gray-950 p-6 sm:p-10">
             <div className="max-w-3xl mx-auto">
@@ -89,7 +103,8 @@ export default async function PostPage({ params }: PostPageProps) {
                     <div className="flex items-center">
                         <User className="w-4 h-4 mr-1" />
                         Tác giả: <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">
-                            {post.profiles?.full_name || "Vô danh"}
+                            {/* ✅ Sử dụng hàm getFullName để truy cập an toàn */}
+                        {getFullName(post.profiles) || "Vô danh"}
                         </span>
                     </div>
                     <div className="flex items-center">
@@ -101,16 +116,14 @@ export default async function PostPage({ params }: PostPageProps) {
                     </span>
                 </div>
 
-                {/* Nội dung (Giả định là Markdown/HTML đơn giản) */}
+                {/* Nội dung */}
                 <div
                     className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: post.content }} // Dùng để hiển thị HTML/Markdown đã được xử lý
-                >
-                </div>
+                    dangerouslySetInnerHTML={{ __html: post.content }}
+                />
             </div>
         </article>
     );
 }
 
-// Bắt buộc để sử dụng slug cho caching
 export const revalidate = 60;

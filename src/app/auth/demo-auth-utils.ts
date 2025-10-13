@@ -1,11 +1,11 @@
-// src/app/auth/demo-auth-utils.ts
+// Sửa cảnh báo 'username' is defined but never used
 'use server';
 
 import { cookies } from 'next/headers';
-import { DEMO_UID } from './constants'; // Import từ file constants mới
+import { DEMO_UID } from './constants';
 
 // Hàm tạo cookie session demo
-export async function createDemoSessionCookie(username: string) {
+export async function createDemoSessionCookie(_username: string) { // Thêm dấu gạch dưới để chỉ ra biến không sử dụng
     // ✅ Await cookies() vì nó trả về Promise
     const cookieStore = await cookies();
 

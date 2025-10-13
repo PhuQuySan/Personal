@@ -1,7 +1,6 @@
-// src/app/blog/page.tsx
 import { createServer } from '@/lib/supabase/server';
 import Link from 'next/link';
-import { BookOpen, Calendar, Tag, User, Shield, Lock, Globe } from 'lucide-react';
+import { BookOpen, Calendar, User, Shield, Lock, Globe } from 'lucide-react'; // Xóa Tag không sử dụng
 
 interface Post {
     id: number;
@@ -16,8 +15,13 @@ interface Post {
     }[] | null;
 }
 
-// ✅ Thêm hàm helper để lấy full_name an toàn
-function getFullName(profiles: any): string | null {
+// ✅ Thay thế any bằng kiểu cụ thể
+interface ProfileData {
+    full_name: string | null;
+}
+
+// ✅ Sửa hàm helper để lấy full_name an toàn
+function getFullName(profiles: ProfileData[] | ProfileData | null): string | null {
     if (!profiles) return null;
 
     // Nếu profiles là mảng, lấy phần tử đầu tiên
@@ -42,7 +46,7 @@ function getAccessIcon(level: Post['access_level']) {
 }
 
 export default async function BlogListPage() {
-    const supabase = createServer();
+    const supabase = await createServer(); // Thêm await
 
     const { data: posts, error } = await supabase
         .from('posts')

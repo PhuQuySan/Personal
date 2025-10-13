@@ -1,7 +1,6 @@
-// src/app/blog/[slug]/page.tsx
 import { createServer } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
-import { Calendar, Tag, User, Lock } from 'lucide-react';
+import { Calendar, User, Lock } from 'lucide-react'; // Xóa Tag không sử dụng
 import Link from "next/link";
 
 interface PostPageProps {
@@ -10,7 +9,7 @@ interface PostPageProps {
     }>;
 }
 
-// ✅ Sửa interface: profiles có thể là mảng hoặc đối tượng
+// Sửa interface: profiles có thể là mảng hoặc đối tượng
 interface Post {
     title: string;
     content: string;
@@ -19,13 +18,18 @@ interface Post {
     access_level: 'public' | 'elite' | 'super_elite';
     profiles: {
         full_name: string | null;
-    }[] | { // Cho phép cả mảng và đối tượng
+    }[] | {
         full_name: string | null;
     } | null;
 }
 
-// ✅ Thêm hàm helper để lấy full_name an toàn
-function getFullName(profiles: any): string | null {
+// Thay thế any bằng kiểu cụ thể
+interface ProfileData {
+    full_name: string | null;
+}
+
+// Thêm hàm helper để lấy full_name an toàn
+function getFullName(profiles: ProfileData[] | ProfileData | null): string | null {
     if (!profiles) return null;
 
     // Nếu profiles là mảng, lấy phần tử đầu tiên
@@ -38,7 +42,7 @@ function getFullName(profiles: any): string | null {
 }
 
 export default async function PostPage({ params }: PostPageProps) {
-    const supabase = createServer();
+    const supabase = await createServer(); // Thêm await
     const { slug } = await params; // Await params
 
     // Lấy thông tin người dùng đang truy cập
@@ -103,8 +107,7 @@ export default async function PostPage({ params }: PostPageProps) {
                     <div className="flex items-center">
                         <User className="w-4 h-4 mr-1" />
                         Tác giả: <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">
-                            {/* ✅ Sử dụng hàm getFullName để truy cập an toàn */}
-                        {getFullName(post.profiles) || "Vô danh"}
+                            {getFullName(post.profiles) || "Vô danh"}
                         </span>
                     </div>
                     <div className="flex items-center">

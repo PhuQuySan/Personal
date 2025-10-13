@@ -22,7 +22,16 @@ interface NavLink {
     hiddenOnMobile?: boolean;
 }
 
+interface UserLink {
+    id: number;
+    link_name: string;
+    link_url: string;
+    description: string | null;
+}
+
 async function fetchUserRole(): Promise<UserProfile | null> {
+    if (typeof window === 'undefined') return null; // Server-side return null
+
     const demoUID = 'demo-user-al-elite-leader-uid';
     const demoSessionCookie = document.cookie.split('; ').find(row => row.startsWith('demo-auth-session='))?.split('=')[1];
 

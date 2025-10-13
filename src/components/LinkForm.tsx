@@ -1,16 +1,15 @@
 // src/components/LinkForm.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useTransition } from 'react';
 import { PlusCircle, Loader2 } from 'lucide-react';
-import { upsertUserLink } from '@/app/auth/actions';
+import { upsertUserLink } from "@/app/auth/link.actions";
 
 interface LinkFormProps {
     action: typeof upsertUserLink;
-    defaultLink?: UserLink; // Dùng cho chức năng sửa (chưa triển khai đầy đủ)
+    defaultLink?: UserLink;
 }
 
-// Giả định kiểu dữ liệu
 interface UserLink {
     id: number;
     link_name: string;
@@ -19,33 +18,39 @@ interface UserLink {
 }
 
 export default function LinkForm({ action }: LinkFormProps) {
-    const [isPending, setIsPending] = useState(false);
+    const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<boolean>(false);
 
-    const handleSubmit = async (formData: FormData) => {
-        setIsPending(true);
-        setError(null);
-        setSuccess(false);
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
 
-        const result = await action(formData);
+        const formData = new FormData(e.currentTarget);
 
-        if (result?.error) {
-            setError(result.error);
-        } else if (result?.success) {
-            setSuccess(true);
-            // Reset form sau khi thành công
-            const form = document.getElementById('link-form') as HTMLFormElement;
-            if (form) form.reset();
-        }
+        startTransition(async () => {
+            setError(null);
+            setSuccess(false);
 
-        setIsPending(false);
-        // Tự động xóa thông báo thành công sau 3 giây
-        setTimeout(() => setSuccess(false), 3000);
+            const result = await action(formData);
+
+            if (result?.error) {
+                setError(result.error);
+            } else if (result?.success) {
+                setSuccess(true);
+                e.currentTarget.reset();
+
+                // Tự động xóa thông báo thành công sau 3 giây
+                setTimeout(() => setSuccess(false), 3000);
+            }
+        });
     };
 
     return (
-        <form id="link-form" action={handleSubmit} className="p-4 border border-blue-200 dark:border-blue-700/50 bg-blue-50 dark:bg-blue-900/20 rounded-lg mb-6 space-y-3">
+        <form
+            id="link-form"
+            onSubmit={handleSubmit}
+            className="p-4 border border-blue-200 dark:border-blue-700/50 bg-blue-50 dark:bg-blue-900/20 rounded-lg mb-6 space-y-3"
+        >
             <h3 className="font-bold text-lg text-blue-700 dark:text-blue-300">Thêm Link Mới</h3>
 
             {/* Tên Link và URL */}

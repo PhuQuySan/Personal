@@ -1,34 +1,27 @@
 // src/lib/supabase/server.ts
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-// Hàm tạo client cho Server Component/Route Handler (sử dụng next/headers cookies)
-// Tránh lỗi TS2339/TS2345 bằng cách truyền trực tiếp hàm cookies
-export function createServer() {
-    const cookieStore = cookies();
+export async function createServer() {
+    const cookieStore = await cookies();
 
     return createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
-                get(name: string) {
-                    return cookieStore.get(name)?.value;
+                getAll() {
+                    return cookieStore.getAll();
                 },
-                set(name: string, value: string, options: CookieOptions) {
+                setAll(cookiesToSet) {
                     try {
-                        cookieStore.set({ name, value, ...options });
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            cookieStore.set(name, value, options)
+                        );
                     } catch (error) {
-                        // Tránh lỗi "cookies() invoked outside of a request scope" trong build
-                        console.error("Lỗi khi set cookie ở Server:", error);
-                    }
-                },
-                remove(name: string, options: CookieOptions) {
-                    try {
-                        cookieStore.set({ name, value: '', ...options });
-                    } catch (error) {
-                        // Tương tự như trên
-                        console.error("Lỗi khi remove cookie ở Server:", error);
+                        // The `setAll` method was called from a Server Component.
+                        // This can be ignored if you have middleware refreshing user sessions.
+                        console.error('Error setting cookies:', error);
                     }
                 },
             },

@@ -22,12 +22,12 @@ interface NavLink {
     hiddenOnMobile?: boolean;
 }
 
-interface UserLink {
-    id: number;
-    link_name: string;
-    link_url: string;
-    description: string | null;
-}
+// interface UserLink {
+//     id: number;
+//     link_name: string;
+//     link_url: string;
+//     description: string | null;
+// }
 
 async function fetchUserRole(): Promise<UserProfile | null> {
     if (typeof window === 'undefined') return null; // Server-side return null

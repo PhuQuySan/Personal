@@ -5,13 +5,14 @@ import { signIn } from '@/app/auth/actions';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Zap, Info } from 'lucide-react';
+import { Suspense } from 'react';
 
-// Tài khoản demo được sử dụng trong form hướng dẫn (Không cần dùng biến môi trường ở đây)
+// Tài khoản demo
 const DEMO_USERNAME = "elite_leader_al";
 const DEMO_PASSWORD = "ITH_2025";
 
-
-export default function LoginPage() {
+// Component sử dụng useSearchParams
+function LoginContent() {
     const searchParams = useSearchParams();
     const errorMessage = searchParams.get('error');
     const successMessage = searchParams.get('message');
@@ -57,7 +58,7 @@ export default function LoginPage() {
                         <input
                             id="email"
                             name="email"
-                            type="text" // Đổi thành type="text" để cho phép nhập username demo
+                            type="text"
                             required
                             placeholder={`Email Supabase hoặc ${DEMO_USERNAME}`}
                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition duration-200"
@@ -116,5 +117,21 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+// Component chính với Suspense
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
+                <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600 dark:text-gray-400">Đang tải...</p>
+                </div>
+            </div>
+        }>
+            <LoginContent />
+        </Suspense>
     );
 }

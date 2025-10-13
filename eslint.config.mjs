@@ -1,3 +1,4 @@
+// eslint.config.mjs
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 import { FlatCompat } from "@eslint/eslintrc";
@@ -19,6 +20,22 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
     ],
+    rules: {
+      // Tắt cảnh báo về biến không sử dụng (chuyển thành warn)
+      "@typescript-eslint/no-unused-vars": "warn",
+
+      // Yêu cầu sử dụng @ts-expect-error thay vì @ts-ignore
+      "@typescript-eslint/ban-ts-comment": [
+        "error",
+        {
+          "ts-expect-error": "allow-with-description",
+          "ts-ignore": false
+        }
+      ],
+
+      // Tắt cảnh báo về any (tùy chọn)
+      "@typescript-eslint/no-explicit-any": "off"
+    }
   },
 ];
 

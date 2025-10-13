@@ -1,26 +1,52 @@
+/* src/app/globals.css */
+
+/* Tailwind v4 sử dụng @import thay vì @tailwind directives */
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* src/app/globals.css */
+html {
+  /* Bật tính năng cuộn mượt trên toàn bộ trang */
+  scroll-behavior: smooth;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@theme {
+  /* Định nghĩa theme variables */
+  --color-background: #ffffff;
+  --color-foreground: #171717;
+
+  /* Gradient colors */
+  --color-gradient-from-blue: hsl(0 100% 50%);
+  --color-gradient-to-green: hsl(150 100% 40%);
+
+  /* Font family */
+  --font-family-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: theme('colors.background');
+    --foreground: theme('colors.foreground');
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #0a0a0a;
+      --foreground: #ededed;
+    }
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: theme('font-family-sans');
+    @apply antialiased min-h-screen;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Custom components */
+}
+
+@layer utilities {
+  /* Custom utilities */
 }

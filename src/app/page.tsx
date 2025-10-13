@@ -1,103 +1,117 @@
-import Image from "next/image";
+// src/app/page.tsx
+import Link from "next/link";
+import { ChevronRight, Zap, BookOpen, Lock } from 'lucide-react';
 
-export default function Home() {
+// Dữ liệu giả lập cho các bài viết nổi bật
+const featuredPosts = [
+  {
+    id: 1,
+    title: "Chiến Lược Lãnh Đạo AL Cấp Độ Elite",
+    summary: "Phân tích sâu về các chiến thuật và nguyên tắc mà một thủ lĩnh cấp độ Elite cần nắm vững để thành công.",
+    href: "/blog/elite-strategy",
+    tag: "Chiến Lược",
+    icon: <Zap className="w-5 h-5 text-yellow-500" />
+  },
+  {
+    id: 2,
+    title: "Bảo Mật Hệ Thống Web: Vai Trò của JWT",
+    summary: "Tìm hiểu cách thức JWT hoạt động và tầm quan trọng của xác thực mã hóa trong hệ thống Next.js.",
+    href: "/blog/jwt-security",
+    tag: "Bảo Mật",
+    icon: <Lock className="w-5 h-5 text-red-500" />
+  },
+  {
+    id: 3,
+    title: "Triển Khai Next.js Trên Vercel: Tối Ưu Hóa",
+    summary: "Các bước tối ưu hóa và cấu hình DNS để đạt hiệu suất cao nhất khi triển khai lên Vercel.",
+    href: "/blog/vercel-optimization",
+    tag: "DevOps",
+    icon: <BookOpen className="w-5 h-5 text-green-500" />
+  },
+];
+
+// Component Card cho Bài Viết
+const PostCard: React.FC<typeof featuredPosts[0]> = ({ title, summary, href, tag, icon }) => (
+    <Link
+        href={href}
+        className="group block p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-2xl transition duration-300 ease-in-out border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-400"
+    >
+      <div className="flex items-center mb-3">
+        {icon}
+        <span className="ml-3 text-sm font-semibold uppercase text-blue-600 dark:text-blue-400">{tag}</span>
+      </div>
+      <h3 className="text-xl font-bold mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition duration-300">
+        {title}
+      </h3>
+      <p className="text-gray-600 dark:text-gray-400 mb-4 text-base line-clamp-3">
+        {summary}
+      </p>
+      <div className="flex items-center text-blue-500 dark:text-blue-400 font-medium">
+        Đọc thêm
+        <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+      </div>
+    </Link>
+);
+
+
+export default function HomePage() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+      <div className="flex flex-col items-center p-4 sm:p-10 min-h-[calc(100vh-60px)] bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100">
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        {/* 1. Hero Section - Header Mạnh Mẽ */}
+        <section className="text-center py-16 sm:py-24 max-w-5xl w-full">
+          <h1 className="text-4xl sm:text-7xl font-extrabold tracking-tight mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-500 dark:from-blue-400 dark:to-green-300">
+            ELITE LEADER: CÔNG NGHỆ & CHIẾN LƯỢC
+          </h1>
+          <p className="text-lg sm:text-2xl font-light mb-10 max-w-3xl mx-auto text-gray-600 dark:text-gray-300">
+            Cổng thông tin cá nhân và blog chuyên sâu về Phát triển Mã, Lãnh đạo cấp cao và Hệ thống Bảo mật tiên tiến.
+          </p>
+
+          {/* Call to Action - Nút Truy Cập Khu Vực Riêng Tư */}
+          <Link
+              href="/login"
+              className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-base font-semibold rounded-full shadow-xl text-white bg-blue-600 hover:bg-blue-700 transition duration-300 ease-in-out transform hover:scale-[1.03] focus:outline-none focus:ring-4 focus:ring-blue-500/50"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+            <Zap className="w-5 h-5 mr-3" />
+            Truy Cập Khu Vực RIÊNG TƯ (Dashboard)
+          </Link>
+        </section>
+
+        ---
+
+        {/* 2. Featured Posts Section - Layout lưới responsive */}
+        <section className="w-full max-w-6xl py-12">
+          <h2 className="text-3xl font-bold mb-10 text-center sm:text-left border-b pb-4 border-gray-200 dark:border-gray-700">
+            🔥 Bài Viết Nổi Bật
+          </h2>
+
+          {/* Grid Responsive: 1 cột trên mobile, 2 cột trên md, 3 cột trên lg */}
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {featuredPosts.map((post) => (
+                <PostCard key={post.id} {...post} />
+            ))}
+          </div>
+
+          <div className="text-center mt-12">
+            <Link
+                href="/blog"
+                className="text-lg text-blue-600 dark:text-blue-400 hover:underline font-semibold transition duration-300"
+            >
+              Xem tất cả bài viết và thư viện →
+            </Link>
+          </div>
+        </section>
+
+        ---
+
+        {/* 3. About Section (Giới thiệu ngắn) */}
+        <section className="w-full max-w-5xl py-12 mt-10">
+          <h2 className="text-3xl font-bold mb-6 text-center">Về Elite Leader AL</h2>
+          <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed text-center">
+            Tôi tập trung vào việc tạo ra các giải pháp mã hóa **hiệu suất cao, an toàn** và dễ bảo trì. Website này là không gian để tôi chia sẻ kiến thức, tài nguyên cá nhân, và các dự án phát triển phần mềm tiên tiến. Mục tiêu là xây dựng cộng đồng vững mạnh xoay quanh công nghệ và lãnh đạo.
+          </p>
+        </section>
+
+      </div>
   );
 }

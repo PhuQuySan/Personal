@@ -1,15 +1,26 @@
-// src/components/PostForm.tsx
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import {Loader2, PlusCircle, Zap} from 'lucide-react';
-import { upsertPost } from '@/app/auth/post.actions';
+import {Loader2, PlusCircle} from 'lucide-react'; // Xóa Zap không sử dụng
+// import { upsertPost } from '@/app/auth/post.actions'; // Xóa nếu không sử dụng
 
 // Các cấp độ truy cập
 const ACCESS_LEVELS = ['public', 'elite', 'super_elite'];
 
+// Thay thế any bằng kiểu cụ thể
+interface PostData {
+    id?: number;
+    title?: string;
+    slug?: string;
+    summary?: string;
+    content?: string;
+    tag?: string;
+    access_level?: 'public' | 'elite' | 'super_elite';
+    is_published?: boolean;
+}
+
 interface PostFormProps {
     action: (formData: FormData) => Promise<{ error: string; success?: undefined; } | { success: boolean; error?: undefined; }>;
-    defaultPost?: any; // Dữ liệu bài viết để sửa (bỏ qua cho form tạo mới)
+    defaultPost?: PostData; // Sửa any bằng kiểu cụ thể
 }
 
 export default function PostForm({ action, defaultPost }: PostFormProps) {

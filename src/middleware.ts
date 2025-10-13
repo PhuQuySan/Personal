@@ -1,4 +1,3 @@
-// src/middleware.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
@@ -21,7 +20,7 @@ export async function middleware(request: NextRequest) {
                 get(name: string) {
                     return request.cookies.get(name)?.value;
                 },
-                set(name: string, value: string, options: any) {
+                set(name: string, value: string, options: { path?: string; expires?: Date; maxAge?: number; domain?: string; secure?: boolean; httpOnly?: boolean; sameSite?: string | boolean }) { // Sửa any bằng kiểu cụ thể
                     // Cập nhật cookie trong response, sẽ được gửi lại trình duyệt
                     response.cookies.set({
                         name,
@@ -32,7 +31,7 @@ export async function middleware(request: NextRequest) {
                         secure: process.env.NODE_ENV === 'production',
                     });
                 },
-                remove(name: string, options: any) {
+                remove(name: string, options: { path?: string; expires?: Date; maxAge?: number; domain?: string; secure?: boolean; httpOnly?: boolean; sameSite?: string | boolean }) { // Sửa any bằng kiểu cụ thể
                     response.cookies.set({
                         name,
                         value: '',

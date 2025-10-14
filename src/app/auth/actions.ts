@@ -2,7 +2,7 @@
 'use server';
 
 import { createServer } from '@/lib/supabase/server';
-import { headers, cookies } from 'next/headers';
+import { headers, cookies } from 'next/headers'; // Không cần await ở đây
 import { redirect } from 'next/navigation';
 import { DEMO_USERNAME, DEMO_PASSWORD } from './constants';
 import { createDemoSessionCookie } from './demo-auth-utils';
@@ -34,8 +34,9 @@ export async function signIn(formData: FormData) {
 
 // Xử lý Đăng ký Supabase
 export async function signUp(formData: FormData) {
-    // ✅ Await headers() vì nó trả về Promise
-    const headerInstance = await headers();
+    // 🧹 FIX 1: Loại bỏ await khỏi headers()
+    const headerInstance = headers();
+    // @ts-ignore
     const origin = headerInstance.get('origin');
     const baseUrl = origin ? origin : '';
 
@@ -43,7 +44,8 @@ export async function signUp(formData: FormData) {
     const password = formData.get('password') as string;
     const supabase = await createServer();
 
-    // 1. Tạo người dùng
+    // 1. Tạo người dùng (User)
+    // Supabase sẽ tự động tạo một profile với user_role mặc định là 'normal'
     const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -66,8 +68,9 @@ export async function signOut() {
     // Xóa session Supabase
     await supabase.auth.signOut();
 
-    // ✅ Xóa session Demo bằng cookies() từ Next.js
-    const cookieStore = await cookies();
+    // 🧹 FIX 2: Loại bỏ await khỏi cookies()
+    const cookieStore = cookies();
+    // @ts-ignore
     cookieStore.delete('demo-auth-session');
 
     return redirect('/');

@@ -1,3 +1,4 @@
+// src/app/blog/[slug]/page.tsx
 import { createServer } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { Calendar, User, Lock } from 'lucide-react'; // Xóa Tag không sử dụng

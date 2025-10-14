@@ -4,25 +4,13 @@
 import { createServer } from '@/lib/supabase/server';
 import { Shield } from 'lucide-react';
 import AdminPanelClient from './AdminPanelClient'; // Import Client Component
-
-// ✅ Định nghĩa kiểu Post với profiles là array
-export interface Post {
-    id: number;
-    title: string;
-    slug: string;
-    content: string;
-    is_published: boolean;
-    access_level: 'public' | 'elite' | 'super_elite';
-    created_at: string;
-    profiles: { full_name: string | null }[] | null; // ✅ Sửa thành array
-}
+import { Post } from '@/types'; // Import interface từ file types
 
 export default async function AdminPanel() {
     const supabase = await createServer();
 
     // Fetch TẤT CẢ bài viết và CONTENT (cần cho form chỉnh sửa)
-    //@ts-expect-error - i dont like it
-    const { data: posts, error } =  supabase
+    const { data: posts, error } = await supabase
         .from('posts')
         .select('id, title, slug, content, is_published, access_level, created_at, profiles(full_name)')
         .order('created_at', { ascending: false });

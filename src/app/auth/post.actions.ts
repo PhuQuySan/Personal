@@ -4,7 +4,7 @@
 import { createServer } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-// Sửa hàm upsertPost để trả về message khi thành công
+// Sửa hàm upsertPost để trả về message khi thành công và hỗ trợ featured_image
 export async function upsertPost(formData: FormData) {
     const supabase = await createServer();
     const { data: { user } } = await supabase.auth.getUser();
@@ -21,6 +21,7 @@ export async function upsertPost(formData: FormData) {
     const is_published = formData.get('is_published') === 'on';
     const access_level = formData.get('access_level') as 'public' | 'elite' | 'super_elite';
     const tag = formData.get('tag') as string;
+    const featured_image = formData.get('featured_image') as string;
 
     // Validate required fields
     if (!title || !slug || !content) {
@@ -36,6 +37,7 @@ export async function upsertPost(formData: FormData) {
         access_level,
         user_id: user.id,
         tag: tag || null,
+        featured_image: featured_image || null,
     };
 
     const query = id
@@ -83,6 +85,8 @@ export async function deletePost(postId: number) {
     }
 
     revalidatePath('/dashboard');
+    revalidatePath('/dashboard/admin'); // Hoặc '/dashboard' nếu Admin Panel nằm ở đó
+
     revalidatePath('/blog');
     return { success: true };
 }

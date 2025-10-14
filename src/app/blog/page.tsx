@@ -1,39 +1,37 @@
+// src/app/blog/page.tsx
+
 import { createServer } from '@/lib/supabase/server';
 import Link from 'next/link';
-import { BookOpen, Calendar, User, Shield, Lock, Globe } from 'lucide-react'; // Xóa Tag không sử dụng
+import { BookOpen, Calendar, User, Shield, Lock, Globe } from 'lucide-react';
+import PostImage from '@/components/PostImage';
+import {Post} from "@/types"; // ✅ IMPORT COMPONENT MỚI
 
-interface Post {
-    id: number;
-    title: string;
-    slug: string;
-    summary: string | null;
-    tag: string | null;
-    created_at: string;
-    access_level: 'public' | 'elite' | 'super_elite';
-    profiles: {
-        full_name: string | null;
-    }[] | null;
-}
+// interface Post {
+//     id: number;
+//     title: string;
+//     slug: string;
+//     summary: string | null;
+//     tag: string | null;
+//     created_at: string;
+//     access_level: 'public' | 'elite' | 'super_elite';
+//     featured_image: string | null;
+//     profiles: {
+//         full_name: string | null;
+//     }[] | null;
+// }
 
-// ✅ Thay thế any bằng kiểu cụ thể
 interface ProfileData {
     full_name: string | null;
 }
 
-// ✅ Sửa hàm helper để lấy full_name an toàn
 function getFullName(profiles: ProfileData[] | ProfileData | null): string | null {
     if (!profiles) return null;
-
-    // Nếu profiles là mảng, lấy phần tử đầu tiên
     if (Array.isArray(profiles)) {
         return profiles[0]?.full_name || null;
     }
-
-    // Nếu profiles là đối tượng, lấy trực tiếp
     return profiles.full_name || null;
 }
 
-// ✅ Hàm helper để lấy icon cho access level
 function getAccessIcon(level: Post['access_level']) {
     switch (level) {
         case 'super_elite':
@@ -46,11 +44,11 @@ function getAccessIcon(level: Post['access_level']) {
 }
 
 export default async function BlogListPage() {
-    const supabase = await createServer(); // Thêm await
+    const supabase = await createServer();
 
     const { data: posts, error } = await supabase
         .from('posts')
-        .select('id, title, slug, summary, tag, created_at, access_level, profiles(full_name)')
+        .select('id, title, slug, summary, tag, created_at, access_level, featured_image, profiles(full_name)')
         .eq('is_published', true)
         .order('created_at', { ascending: false });
 
@@ -98,9 +96,15 @@ export default async function BlogListPage() {
                             href={`/blog/${post.slug}`}
                             className="group block bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 dark:border-gray-700 transform hover:-translate-y-1"
                         >
-                            {/* Phần header của card */}
-                            <div className="p-5">
-                                <div className="flex justify-between items-start mb-3">
+                            {/* ✅ SỬ DỤNG POSTIMAGE COMPONENT */}
+                            <div className="relative h-48 bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                <PostImage
+                                    src={post.featured_image}
+                                    alt={post.title}
+                                />
+
+                                {/* Overlay với access level */}
+                                <div className="absolute top-3 left-3">
                                     <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full ${
                                         post.access_level === 'public'
                                             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
@@ -111,15 +115,19 @@ export default async function BlogListPage() {
                                         {getAccessIcon(post.access_level)}
                                         <span className="ml-1 capitalize">{post.access_level}</span>
                                     </span>
-
-                                    {post.tag && (
-                                        <span className="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                                            {post.tag}
-                                        </span>
-                                    )}
                                 </div>
+                            </div>
 
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                            {/* Phần nội dung card */}
+                            <div className="p-5">
+                                {/* Tag */}
+                                {post.tag && (
+                                    <span className="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 mb-3">
+                                        {post.tag}
+                                    </span>
+                                )}
+
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
                                     {post.title}
                                 </h2>
 

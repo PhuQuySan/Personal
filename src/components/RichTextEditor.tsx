@@ -1,4 +1,4 @@
-// src/components/RichTextEditor.tsx
+// src/components/RichTextEditor.tsx (FULL CODE CẬP NHẬT)
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -18,11 +18,16 @@ import {
     Smile,
     Palette
 } from 'lucide-react';
-import { RichTextEditorProps } from '@/types'; // Import interface từ file types
+import { RichTextEditorProps } from '@/types';
+// Import Modal đã tạo
+import InsertImageModal from './InsertImageModal';
+
+type ImageAlign = 'center' | 'left' | 'right' | 'none';
 
 export default function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
     const editorRef = useRef<HTMLDivElement>(null);
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false); // 🌟 State cho Image Modal 🌟
     const [linkUrl, setLinkUrl] = useState('');
     const [linkText, setLinkText] = useState('');
     const [isInitialized, setIsInitialized] = useState(false);
@@ -30,7 +35,6 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     // Cập nhật nội dung khi value prop thay đổi
     useEffect(() => {
         if (editorRef.current && isInitialized) {
-            // Chỉ cập nhật nếu nội dung thực sự khác nhau và editor đã được khởi tạo
             if (value === '') {
                 editorRef.current.innerHTML = '';
             } else if (editorRef.current.innerHTML !== value) {
@@ -61,6 +65,8 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         if (typeof window !== 'undefined' && document && document.execCommand) {
             try {
                 document.execCommand(command, false, value);
+                // Sau khi thực thi command, cần focus lại vào editor để tránh mất caret
+                editorRef.current?.focus();
                 handleInput();
             } catch (error) {
                 console.error('Lỗi khi định dạng văn bản:', error);
@@ -68,7 +74,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         }
     };
 
-    // Chèn liên kết
+    // Chèn liên kết (Giữ nguyên)
     const insertLink = () => {
         if (!linkUrl || !linkText) return;
 
@@ -86,10 +92,8 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                     range.deleteContents();
                     range.insertNode(linkElement);
 
-                    // Cập nhật nội dung
                     handleInput();
 
-                    // Reset form và đóng modal
                     setLinkUrl('');
                     setLinkText('');
                     setIsLinkModalOpen(false);
@@ -100,15 +104,70 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         }
     };
 
-    // Chèn hình ảnh
-    const insertImage = (url: string) => {
+    // 🌟 HÀM CẬP NHẬT: Chèn hình ảnh với căn chỉnh và HTML chuẩn 🌟
+// 🌟 SỬA LẠI HÀM insertImage TRONG RichTextEditor 🌟
+    const insertImage = (url: string, align: ImageAlign) => {
         if (typeof window !== 'undefined' && document && document.execCommand) {
+            // Focus vào editor trước khi chèn
+            editorRef.current?.focus();
+
+            // Tạo HTML cho hình ảnh
+            let imgHTML = '';
+
+            if (align === 'center') {
+                imgHTML = `
+                <div style="text-align: center; margin: 1em 0;">
+                    <img src="${url}" alt="Inserted image" style="max-width: 100%; height: auto; border-radius: 8px; display: inline-block;" />
+                </div>
+            `;
+            } else if (align === 'left') {
+                imgHTML = `
+                <div style="float: left; margin: 0 1em 1em 0;">
+                    <img src="${url}" alt="Inserted image" style="max-width: 100%; height: auto; border-radius: 8px;" />
+                </div>
+            `;
+            } else if (align === 'right') {
+                imgHTML = `
+                <div style="float: right; margin: 0 0 1em 1em;">
+                    <img src="${url}" alt="Inserted image" style="max-width: 100%; height: auto; border-radius: 8px;" />
+                </div>
+            `;
+            } else {
+                imgHTML = `
+                <img src="${url}" alt="Inserted image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 1em 0;" />
+            `;
+            }
+
             try {
-                const img = `<img src="${url}" alt="Inserted image" style="max-width: 100%; height: auto;" />`;
-                document.execCommand('insertHTML', false, img);
+                // Thêm một khoảng trắng trước khi chèn hình ảnh để đảm bảo nó được chèn đúng vị trí
+                document.execCommand('insertHTML', false, '<br>' + imgHTML + '<br>');
                 handleInput();
+
+                // Debug: log để kiểm tra
+                console.log('Image inserted:', url);
+                console.log('Current editor content:', editorRef.current?.innerHTML);
             } catch (error) {
                 console.error('Lỗi khi chèn hình ảnh:', error);
+
+                // Fallback: chèn trực tiếp vào DOM
+                const selection = window.getSelection();
+                if (selection && selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = imgHTML;
+
+                    while (tempDiv.firstChild) {
+                        range.insertNode(tempDiv.firstChild);
+                    }
+
+                    // Di chuyển cursor sau hình ảnh
+                    range.setStartAfter(tempDiv);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+
+                    handleInput();
+                }
             }
         }
     };
@@ -226,10 +285,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                 {/* Hình ảnh */}
                 <button
                     type="button"
-                    onClick={() => {
-                        const url = prompt('Nhập URL hình ảnh:');
-                        if (url) insertImage(url);
-                    }}
+                    onClick={() => setIsImageModalOpen(true)} // 🌟 Thay prompt bằng mở Modal 🌟
                     className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
                     title="Chèn hình ảnh"
                 >
@@ -264,6 +320,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
             </div>
 
             {/* Editor */}
+            {/* Editor */}
             <div className="relative">
                 <div
                     ref={editorRef}
@@ -271,11 +328,12 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                     suppressContentEditableWarning={true}
                     onInput={handleInput}
                     className="min-h-[300px] p-4 bg-white dark:bg-gray-900 focus:outline-none"
+                    // Thêm style cho phép hình ảnh được float nếu cần
                     style={{ direction: 'ltr', textAlign: 'left' }}
                 />
 
                 {/* Placeholder */}
-                {(!value || value === '') && (
+                {(!value || value === '<p></p>' || editorRef.current?.innerText === '') && ( // Cập nhật logic placeholder
                     <div
                         className="absolute top-4 left-4 text-gray-400 pointer-events-none"
                     >
@@ -284,7 +342,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                 )}
             </div>
 
-            {/* Link Modal */}
+            {/* Link Modal (Giữ nguyên) */}
             {isLinkModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
@@ -340,6 +398,17 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                     </div>
                 </div>
             )}
+            {/* 🌟 IMAGE MODAL MỚI 🌟 */}
+            {/*// Trong hàm xử lý insert của modal*/}
+            <InsertImageModal
+                isOpen={isImageModalOpen}
+                onClose={() => setIsImageModalOpen(false)}
+                onInsert={(url, align) => {
+                    console.log('Modal onInsert called:', { url, align });
+                    insertImage(url, align);
+                    setIsImageModalOpen(false);
+                }}
+            />
         </div>
     );
 }

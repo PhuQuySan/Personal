@@ -1,6 +1,8 @@
 // src/components/AdminPanelClient.tsx
 'use client';
 
+// src/components/AdminPanelClient.tsx (Mã đã sửa)
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { upsertPost, deletePost } from '@/app/auth/post.actions';
@@ -15,18 +17,19 @@ import {
     X,
     Loader2,
     FileText,
-    Users,
-    Settings,
     Image,
-    Link as LinkIcon
+    Settings,
+    Users
 } from 'lucide-react';
 import PostForm from './PostForm';
-import {
-    Post,
-    AdminPanelClientProps,
-    ActionResult
-} from '@/types'; // Import các interface từ file types
+import {Post, AdminPanelClientProps, ActionResult, UserProfile} from '@/types';
 
+
+/**
+ * Component để hiển thị biểu tượng tương ứng với cấp độ truy cập của bài viết.
+ * @param level - Cấp độ truy cập ('super_elite', 'elite', 'public').
+ * @returns Element biểu tượng (Icon).
+ */
 const getAccessIcon = (level: Post['access_level']) => {
     switch (level) {
         case 'super_elite':
@@ -38,81 +41,106 @@ const getAccessIcon = (level: Post['access_level']) => {
     }
 };
 
-export default function AdminPanelClient({ initialPosts }: AdminPanelClientProps) {
+
+interface ExtendedAdminPanelClientProps extends AdminPanelClientProps {
+    userRole: UserProfile['user_role'];  // Sử dụng kiểu từ UserProfile
+    userId: string;
+}
+
+/**
+ * Client Component cho bảng điều khiển Admin.
+ * Quản lý việc tạo, đọc, cập nhật, và xóa (CRUD) bài viết.
+ */
+export default function AdminPanelClient({ initialPosts, userRole, userId }: ExtendedAdminPanelClientProps) {
+    // --- State Management ---
     const [posts, setPosts] = useState<Post[]>(initialPosts);
     const [editingPost, setEditingPost] = useState<Post | null>(null);
     const [isCreatingNew, setIsCreatingNew] = useState(false);
     const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'settings'>('posts');
-    const [isLoading, setIsLoading] = useState(false);
+    const [activePostSubTab, setActivePostSubTab] = useState<'all' | 'my_posts'>('all'); // 🌟 Sub-Tab State 🌟
+    const [isActionPending, setIsActionPending] = useState(false);
 
-    // Tải lại dữ liệu khi component được mount
-    useEffect(() => {
-        const fetchPosts = async () => {
-            setIsLoading(true);
-            try {
-                const response = await fetch('/api/posts');
-                if (response.ok) {
-                    const data = await response.json();
-                    setPosts(data.posts || []);
-                }
-            } catch (error) {
-                console.error('Lỗi khi tải bài viết:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    // 🌟 FIX: Lấy vai trò từ props 🌟
+    const isSuperElite = userRole === 'super_elite';
+    const isElite = userRole === 'super_elite' || userRole === 'elite';
 
-        fetchPosts();
-    }, []);
+    // XÓA: Xóa logic useEffect lấy vai trò người dùng (vì đã có props)
 
-    const currentFormTitle = editingPost
-        ? `Chỉnh sửa Bài viết: ${editingPost.title}`
-        : 'Tạo Bài Viết Mới';
-
+    // --- Derived State ---
     const currentFormDefaultPost = editingPost || undefined;
     const isFormOpen = editingPost !== null || isCreatingNew;
 
-    // Sửa lại kiểu trả về của hàm handleFormSubmit để khớp với PostFormProps
-    const handleFormSubmit = async (formData: FormData): Promise<ActionResult> => {
-        setIsLoading(true);
+    // 🌟 LOGIC LỌC BÀI VIẾT 🌟
+    const filteredPosts = posts.filter(post => {
+        // Chỉ cho phép Elite/Super Elite xem tất cả bài viết
+        if (activePostSubTab === 'all' && isElite) {
+            return true;
+        }
+        // Member chỉ thấy bài viết của mình
+        if (activePostSubTab === 'my_posts' && post.user_id === userId) {
+            return true;
+        }
+        // Nếu không phải Elite/SuperElite và đang ở tab 'all' (mặc định cho thành viên), vẫn chỉ xem bài của mình
+        if (activePostSubTab === 'all' && !isElite && post.user_id === userId) {
+            return true;
+        }
+        return false;
+    });
+
+    /**
+     * Tải lại danh sách bài viết từ API endpoint.
+     * Dữ liệu tải lại này phải bao gồm tất cả các bài viết cho Admin.
+     */
+    const reloadPostsFromApi = async () => {
+        setIsActionPending(true);
         try {
-            const result = await upsertPost(formData);
-            if (result && 'success' in result && result.success) {
-                // Tải lại danh sách bài viết
-                const response = await fetch('/api/posts');
-                if (response.ok) {
-                    const data = await response.json();
-                    setPosts(data.posts || []);
-                }
-
-                setEditingPost(null);
-                setIsCreatingNew(false);
-
-                // Hiển thị thông báo thành công
-                alert(result.message || 'Thao tác thành công!');
-
-                // Trả về kết quả thành công
-                return { success: true, message: result.message || 'Thao tác thành công!' };
-            } else if (result && 'error' in result) {
-                alert(result.error);
-                // Trả về kết quả lỗi
-                // @ts-ignore
-                return { error: result.error };
+            // Sẽ gọi API Route mà chúng ta đã FIX ở Cấp Bách 4
+            const response = await fetch('/api/posts');
+            if (response.ok) {
+                const data = await response.json();
+                setPosts(data.posts || []);
+            } else {
+                console.error('Failed to fetch posts:', response.statusText);
             }
-
-            // Trường hợp mặc định
-            return { error: 'Đã xảy ra lỗi không xác định' };
         } catch (error) {
-            console.error('Lỗi khi lưu bài viết:', error);
-            alert('Có lỗi xảy ra khi lưu bài viết. Vui lòng thử lại.');
-            // Trả về kết quả lỗi
-            return { error: 'Có lỗi xảy ra khi lưu bài viết' };
+            console.error('Lỗi khi tải lại bài viết:', error);
         } finally {
-            setIsLoading(false);
+            setIsActionPending(false);
         }
     };
 
+    /**
+     * Xử lý việc gửi form từ PostForm để tạo hoặc cập nhật bài viết.
+     * @param formData - Dữ liệu form từ PostForm.
+     * @returns Một Promise chứa kết quả hành động (ActionResult).
+     */
+    const handleFormSubmit = async (formData: FormData): Promise<ActionResult> => {
+        setIsActionPending(true);
+        try {
+            const result = await upsertPost(formData);
+
+            if (result && result.success) {
+                await reloadPostsFromApi();
+                setEditingPost(null);
+                setIsCreatingNew(false);
+                return { success: true, message: result.message || 'Thao tác thành công!' };
+            } else {
+                return { success: false, error: result?.error || 'Đã xảy ra lỗi không xác định' };
+            }
+        } catch (error) {
+            console.error('Lỗi khi lưu bài viết:', error);
+            return { success: false, error: 'Có lỗi xảy ra khi lưu bài viết' };
+        } finally {
+            setIsActionPending(false);
+        }
+    };
+
+    /**
+     * Xử lý việc xóa một bài viết.
+     * @param postId - ID của bài viết cần xóa.
+     * @param event - Sự kiện form submit để ngăn hành vi mặc định.
+     */
     const handleDeletePost = async (postId: number, event: React.FormEvent) => {
         event.preventDefault();
 
@@ -124,9 +152,7 @@ export default function AdminPanelClient({ initialPosts }: AdminPanelClientProps
         try {
             const result = await deletePost(postId);
             if (result && 'success' in result && result.success) {
-                // Cập nhật UI: loại bỏ bài viết đã xóa khỏi danh sách
-                setPosts(posts.filter(post => post.id !== postId));
-                alert('Xóa bài viết thành công!');
+                await reloadPostsFromApi();
             } else if (result && 'error' in result) {
                 alert(`Lỗi: ${result.error}`);
             }
@@ -138,9 +164,10 @@ export default function AdminPanelClient({ initialPosts }: AdminPanelClientProps
         }
     };
 
+    // --- UI Rendering ---
     return (
         <div>
-            {/* Tabs */}
+            {/* Tab Navigation */}
             <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
                 <button
                     className={`px-4 py-2 font-medium text-sm ${activeTab === 'posts' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
@@ -156,16 +183,18 @@ export default function AdminPanelClient({ initialPosts }: AdminPanelClientProps
                     <Image className="w-4 h-4 inline mr-2" />
                     Thư viện Hình ảnh
                 </button>
-                <button
-                    className={`px-4 py-2 font-medium text-sm ${activeTab === 'settings' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
-                    onClick={() => setActiveTab('settings')}
-                >
-                    <Settings className="w-4 h-4 inline mr-2" />
-                    Cài đặt Hệ thống
-                </button>
+                {isSuperElite && (
+                    <button
+                        className={`px-4 py-2 font-medium text-sm ${activeTab === 'settings' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+                        onClick={() => setActiveTab('settings')}
+                    >
+                        <Settings className="w-4 h-4 inline mr-2" />
+                        Cài đặt Hệ thống
+                    </button>
+                )}
             </div>
 
-            {/* Tab Content */}
+            {/* Tab: Posts */}
             {activeTab === 'posts' && (
                 <>
                     <div className="flex justify-between items-center mb-6">
@@ -205,7 +234,7 @@ export default function AdminPanelClient({ initialPosts }: AdminPanelClientProps
                         </div>
                     )}
 
-                    {isLoading ? (
+                    {isActionPending && !isFormOpen ? (
                         <div className="flex justify-center items-center h-40">
                             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                         </div>
@@ -223,7 +252,7 @@ export default function AdminPanelClient({ initialPosts }: AdminPanelClientProps
                                                         </h4>
                                                         <span className="ml-2 flex items-center">
                                                             {getAccessIcon(post.access_level)}
-                                                            <span className="ml-1 text-xs capitalize">{post.access_level}</span>
+                                                            <span className="ml-1 text-xs capitalize">{post.access_level.replace('_', ' ')}</span>
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
@@ -243,6 +272,12 @@ export default function AdminPanelClient({ initialPosts }: AdminPanelClientProps
                                                         <span className="mx-2">•</span>
                                                         <span>{new Date(post.created_at).toLocaleDateString('vi-VN')}</span>
                                                     </div>
+                                                    {post.featured_image && (
+                                                        <div className="mt-2 flex items-center">
+                                                            <Image className="w-4 h-4 mr-1 text-blue-500" />
+                                                            <span className="text-xs text-blue-600 dark:text-blue-400">Có hình ảnh đại diện</span>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className="flex space-x-2 ml-4">
@@ -299,6 +334,7 @@ export default function AdminPanelClient({ initialPosts }: AdminPanelClientProps
                 </>
             )}
 
+            {/* Tab: Media */}
             {activeTab === 'media' && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700 p-8">
                     <div className="text-center">
@@ -325,7 +361,6 @@ export default function AdminPanelClient({ initialPosts }: AdminPanelClientProps
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {/* Placeholder for images */}
                             {[1, 2, 3, 4].map((item) => (
                                 <div key={item} className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
                                     <Image className="w-8 h-8 text-gray-400" />
@@ -336,7 +371,8 @@ export default function AdminPanelClient({ initialPosts }: AdminPanelClientProps
                 </div>
             )}
 
-            {activeTab === 'settings' && (
+            {/* Tab: Settings (Chỉ hiển thị với Super Elite) */}
+            {activeTab === 'settings' && isSuperElite && (
                 <div className="p-8 text-center bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <Settings className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-600 mb-4" />
                     <h3 className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">Cài đặt Hệ thống</h3>

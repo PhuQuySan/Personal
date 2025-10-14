@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, PlusCircle, Image, Link as LinkIcon, X } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
-import { PostData, PostFormProps, ActionResult } from '@/types'; // Import các interface từ file types
+import { PostData, PostFormProps, ActionResult } from '@/types';
 
 // Các cấp độ truy cập
 const ACCESS_LEVELS = ['public', 'elite', 'super_elite'];
@@ -13,6 +13,7 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
     const [status, setStatus] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
     const [content, setContent] = useState<string>(defaultPost?.content || '');
     const [title, setTitle] = useState<string>(defaultPost?.title || '');
+    const [featuredImage, setFeaturedImage] = useState<string>(defaultPost?.featured_image || '');
     const formRef = useRef<HTMLFormElement>(null);
 
     // Thêm useEffect để điền giá trị mặc định khi defaultPost thay đổi
@@ -52,8 +53,31 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
             // Cập nhật state local
             setContent(defaultPost.content || '');
             setTitle(defaultPost.title || '');
+            setFeaturedImage(defaultPost.featured_image || '');
         }
     }, [defaultPost]);
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Trong một ứng dụng thực tế, bạn sẽ tải lên đây
+            // Hiện tại, chúng ta chỉ tạo URL tạm thời
+            const imageUrl = URL.createObjectURL(file);
+            setFeaturedImage(imageUrl);
+
+            // Thêm input ẩn cho featured_image
+            if (formRef.current) {
+                let imageInput = formRef.current.elements.namedItem('featured_image') as HTMLInputElement;
+                if (!imageInput) {
+                    imageInput = document.createElement('input');
+                    imageInput.type = 'hidden';
+                    imageInput.name = 'featured_image';
+                    formRef.current.appendChild(imageInput);
+                }
+                imageInput.value = imageUrl;
+            }
+        }
+    };
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -80,6 +104,7 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                     formRef.current.reset();
                     setContent('');
                     setTitle('');
+                    setFeaturedImage('');
                 }
             }
         } catch (error) {
@@ -93,6 +118,53 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
 
     return (
         <div className="space-y-6">
+            {/* Featured Image */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Hình ảnh đại diện
+                </label>
+
+                {featuredImage ? (
+                    <div className="relative mb-3">
+                        <img
+                            src={featuredImage}
+                            alt="Featured"
+                            className="w-full h-48 object-cover rounded-lg"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setFeaturedImage('')}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                ) : (
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center mb-3">
+                        <Image className="w-10 h-10 mx-auto text-gray-400" />
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                            Chưa có hình ảnh đại diện
+                        </p>
+                    </div>
+                )}
+
+                <label className="block">
+                    <span className="sr-only">Chọn hình ảnh</span>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-md file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100
+                            dark:file:bg-blue-900/30 dark:file:text-blue-300"
+                    />
+                </label>
+            </div>
+
             {/* Main Form */}
             <form
                 ref={formRef}

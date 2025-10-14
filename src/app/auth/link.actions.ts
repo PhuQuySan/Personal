@@ -17,12 +17,23 @@ export async function upsertUserLink(formData: FormData) {
     const link_url = formData.get('link_url') as string;
     const description = formData.get('description') as string | null;
 
+    // Kiểm tra các trường bắt buộc
+    if (!link_name || !link_url) {
+        return { error: 'Vui lòng điền đầy đủ tên liên kết và URL.' };
+    }
+
+    // Kiểm tra URL hợp lệ
+    try {
+        new URL(link_url);
+    } catch (e) {
+        return { error: 'URL không hợp lệ. Vui lòng nhập URL đầy đủ (https://...)' };
+    }
+
     const linkData = {
         user_id: user.id,
         link_name,
         link_url,
-        description,
-        // Giả định không có ID, luôn là insert mới cho đơn giản
+        description: description || null,
     };
 
     const { error } = await supabase.from('user_links').insert(linkData);
@@ -33,5 +44,5 @@ export async function upsertUserLink(formData: FormData) {
     }
 
     revalidatePath('/dashboard');
-    return { success: true };
+    return { success: true, message: 'Thêm liên kết thành công!' };
 }

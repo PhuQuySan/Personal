@@ -3,10 +3,11 @@
 
 import Link from 'next/link';
 import { LogIn, LayoutDashboard, BookOpen, LogOut, Shield, Lock, Zap, User, ChevronDown } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import {usePathname, useRouter} from 'next/navigation';
 import { useEffect, useState, useMemo, ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { signOut } from '@/app/auth/actions';
+
 
 type UserRole = 'normal' | 'elite' | 'super_elite' | 'demo';
 
@@ -25,12 +26,20 @@ interface NavLink {
 }
 
 async function fetchUserProfile(): Promise<UserProfile | null> {
-    if (typeof window === 'undefined') return null;
+    //console.log('🔍 [fetchUserProfile] Bắt đầu fetch user profile');
+
+    if (typeof window === 'undefined') {
+        //console.log('❌ [fetchUserProfile] Chạy trên server, return null');
+        return null;
+    }
 
     const demoUID = 'demo-user-al-elite-leader-uid';
     const demoSessionCookie = document.cookie.split('; ').find(row => row.startsWith('demo-auth-session='))?.split('=')[1];
 
+    //console.log('🍪 [fetchUserProfile] Demo cookie:', demoSessionCookie);
+
     if (demoSessionCookie === demoUID) {
+        //console.log('👤 [fetchUserProfile] Đang dùng demo account');
         return {
             full_name: "Elite Leader Demo",
             role: 'demo'
@@ -38,17 +47,28 @@ async function fetchUserProfile(): Promise<UserProfile | null> {
     }
 
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (!user) return null;
+    //console.log('👤 [fetchUserProfile] Supabase user:', user);
+    //console.log('❌ [fetchUserProfile] User error:', userError);
 
-    const { data: profile } = await supabase
+    if (!user) {
+        //console.log('❌ [fetchUserProfile] Không có user, return null');
+        return null;
+    }
+
+    const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('full_name, avatar_url, user_role')
         .eq('id', user.id)
         .single();
 
+    //console.log('📊 [fetchUserProfile] Profile data:', profile);
+    //console.log('❌ [fetchUserProfile] Profile error:', profileError);
+
     const role = (profile?.user_role || 'normal') as UserRole;
+
+    //console.log('🎯 [fetchUserProfile] Final role:', role);
 
     return {
         full_name: profile?.full_name || user.email || 'Người dùng',
@@ -58,13 +78,23 @@ async function fetchUserProfile(): Promise<UserProfile | null> {
 }
 
 export const Navigation: React.FC = () => {
+
     const pathname = usePathname();
+    const router = useRouter();
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     const isAuthenticated = !!userProfile;
     const userRole = userProfile?.role || 'normal';
+
+    //console.log('🔄 [Navigation] Render state:', {
+    //     userProfile,
+    //     isLoading,
+    //     isAuthenticated,
+    //     userRole,
+    //     pathname
+    // });
 
     const navLinks: NavLink[] = useMemo(() => [
         { name: 'Trang Chủ', href: '/', icon: <Zap className="w-5 h-5 mr-1" /> },
@@ -91,30 +121,76 @@ export const Navigation: React.FC = () => {
         },
     ], []);
 
+// Trong useEffect hiện tại, sửa lại phần listener:
     useEffect(() => {
+        //console.log('🚀 [useEffect] Bắt đầu load user profile');
+
         const loadUserProfile = async () => {
+            //console.log('📥 [loadUserProfile] Đang gọi fetchUserProfile...');
             const profile = await fetchUserProfile();
+            //console.log('✅ [loadUserProfile] Nhận được profile:', profile);
             setUserProfile(profile);
             setIsLoading(false);
         };
 
         loadUserProfile();
 
-        const { data: { subscription } } = createClient().auth.onAuthStateChange(() => {
-            loadUserProfile();
-        });
+        // Theo dõi thay đổi auth state - THÊM DELAY ĐỂ ĐẢM BẢO
+        //console.log('👂 [useEffect] Thiết lập auth state listener');
+        const supabase = createClient();
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            (event, session) => {
+                //console.log('🎯 [onAuthStateChange] Event:', event, 'Session:', session ? 'Có session' : 'Không session');
+
+                // Thêm delay nhỏ để đảm bảo session được thiết lập
+                setTimeout(() => {
+                    //console.log('🔄 [onAuthStateChange] Gọi lại loadUserProfile sau delay');
+                    loadUserProfile();
+                }, 1000);
+            }
+        );
 
         return () => {
+            //console.log('🧹 [useEffect] Cleanup - unsubscribe listener');
             subscription.unsubscribe();
         };
     }, []);
 
     const handleSignOut = async () => {
-        await signOut();
-        setIsDropdownOpen(false);
+        //console.log('🚪 [handleSignOut] Bắt đầu đăng xuất');
+        try {
+            // 1. Đăng xuất khỏi Supabase
+            const supabase = createClient();
+            const { error } = await supabase.auth.signOut();
+
+            if (error) {
+               // console.error('❌ [handleSignOut] Lỗi Supabase signOut:', error);
+            }
+
+            // 2. Xóa demo cookie (nếu có)
+            document.cookie = 'demo-auth-session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
+            //console.log('✅ [handleSignOut] Đăng xuất thành công');
+            setIsDropdownOpen(false);
+
+            // QUAN TRỌNG: Dùng client-side navigation thay vì reload
+            //console.log('🔄 [handleSignOut] Chuyển hướng về trang chủ (client-side)');
+            router.push('/');
+            // HOẶC router.refresh() nếu muốn giữ state hiện tại
+
+        } catch (error) {
+            console.error('❌ [handleSignOut] Lỗi đăng xuất:', error);
+            router.push('/');
+        }
     };
 
-    if (isLoading) return <div className="h-16 bg-white dark:bg-gray-900 border-b dark:border-gray-700"></div>;
+
+    if (isLoading) {
+        //console.log('⏳ [Navigation] Đang loading...');
+        return <div className="h-16 bg-white dark:bg-gray-900 border-b dark:border-gray-700"></div>;
+    }
+
+    //console.log('🎨 [Navigation] Rendering UI với isAuthenticated:', isAuthenticated);
 
     const getLinkClass = (href: string) =>
         `px-3 py-2 rounded-lg text-sm font-medium transition duration-200 whitespace-nowrap ${
@@ -137,6 +213,7 @@ export const Navigation: React.FC = () => {
                     <nav className="hidden md:flex items-center space-x-1">
                         {navLinks.map((link) => {
                             const shouldShow = !link.requiredRoles || link.requiredRoles.includes(userRole);
+                            //console.log(`🔗 [NavLink] ${link.name}: shouldShow=${shouldShow}, userRole=${userRole}, requiredRoles=${link.requiredRoles}`);
                             return shouldShow ? (
                                 <Link
                                     key={link.name}
@@ -152,6 +229,7 @@ export const Navigation: React.FC = () => {
                         {/* Admin Links - chỉ hiển thị với super_elite */}
                         {adminLinks.map((link) => {
                             const shouldShow = !link.requiredRoles || link.requiredRoles.includes(userRole);
+                            //console.log(`🛡️ [AdminLink] ${link.name}: shouldShow=${shouldShow}, userRole=${userRole}`);
                             return shouldShow ? (
                                 <Link
                                     key={link.name}
@@ -168,9 +246,15 @@ export const Navigation: React.FC = () => {
                     {/* User Menu */}
                     <div className="flex items-center space-x-4">
                         {!isAuthenticated ? (
-                            <Link href="/login" className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition duration-300 flex items-center whitespace-nowrap">
-                                <LogIn className="w-5 h-5 mr-1" /> Đăng nhập
-                            </Link>
+                            <>
+                                <div className="text-sm text-gray-500">(Chưa đăng nhập)</div>
+                                <Link
+                                    href="/login"
+                                    className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition duration-300 flex items-center whitespace-nowrap"
+                                >
+                                    <LogIn className="w-5 h-5 mr-1" /> Đăng nhập
+                                </Link>
+                            </>
                         ) : (
                             <div className="relative">
                                 <button
@@ -242,6 +326,7 @@ export const Navigation: React.FC = () => {
                     <div className="flex flex-wrap gap-1">
                         {navLinks.map((link) => {
                             const shouldShow = !link.requiredRoles || link.requiredRoles.includes(userRole);
+                            //console.log(`📱 [MobileNavLink] ${link.name}: shouldShow=${shouldShow}`);
                             return shouldShow ? (
                                 <Link
                                     key={link.name}

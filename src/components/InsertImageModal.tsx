@@ -89,20 +89,6 @@ export default function InsertImageModal({ isOpen, onClose, onInsert }: InsertIm
                     <div className="flex space-x-1 mb-6 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
                         <button
                             type="button"
-                            onClick={() => setActiveTab('url')}
-                            className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${
-                                activeTab === 'url'
-                                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                            }`}
-                        >
-                            <div className="flex items-center justify-center space-x-2">
-                                <LinkIcon className="w-4 h-4" />
-                                <span>URL</span>
-                            </div>
-                        </button>
-                        <button
-                            type="button"
                             onClick={() => setActiveTab('upload')}
                             className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${
                                 activeTab === 'upload'
@@ -113,6 +99,20 @@ export default function InsertImageModal({ isOpen, onClose, onInsert }: InsertIm
                             <div className="flex items-center justify-center space-x-2">
                                 <Upload className="w-4 h-4" />
                                 <span>Tải lên</span>
+                            </div>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('url')}
+                            className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                                activeTab === 'url'
+                                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                            }`}
+                        >
+                            <div className="flex items-center justify-center space-x-2">
+                                <LinkIcon className="w-4 h-4" />
+                                <span>URL</span>
                             </div>
                         </button>
                     </div>

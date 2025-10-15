@@ -5,6 +5,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 // import {AuthProvider} from "@/components/AuthProvider";
 import {Navigation} from "@/components/Navigation"; // Đảm bảo CSS được import
+import { LoadingProvider } from "@/contexts/LoadingContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,14 +20,20 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="vi">
+        <html lang="vi" data-scroll-behavior="smooth">
         <body className={inter.className}>
         {/* Bọc toàn bộ ứng dụng bằng AuthProvider */}
         {/*<AuthProvider>*/}
+        <LoadingProvider>
             <Navigation /> {/* Thanh điều hướng ở đây */}
+
+
             <main style={{ padding: '20px' }}>
                 {children}
             </main>
+        </LoadingProvider>
+
+
         {/*</AuthProvider>*/}
         </body>
         </html>

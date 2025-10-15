@@ -34,31 +34,58 @@ export async function signIn(formData: FormData) {
 
 // Xử lý Đăng ký Supabase
 export async function signUp(formData: FormData) {
-    // 🧹 FIX 1: Loại bỏ await khỏi headers()
-    const headerInstance = headers();
-    // @ts-ignore
-    const origin = headerInstance.get('origin');
-    const baseUrl = origin ? origin : '';
+    try {
+        console.log('🔐 [signUp Action] Bắt đầu đăng ký');
 
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-    const supabase = await createServer();
+        // 🧹 FIX: Loại bỏ await khỏi headers()
+        const headerInstance = headers();
+        // @ts-ignore
+        const origin = headerInstance.get('origin');
+        const baseUrl = origin ? origin : '';
 
-    // 1. Tạo người dùng (User)
-    // Supabase sẽ tự động tạo một profile với user_role mặc định là 'normal'
-    const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-            emailRedirectTo: `${baseUrl}/auth/callback`,
-        },
-    });
+        const email = formData.get('email') as string;
+        const password = formData.get('password') as string;
 
-    if (error) {
-        return redirect(`/signup?error=${error.message}`);
+        console.log('📧 [signUp Action] Email:', email);
+
+        const supabase = await createServer();
+
+        // 1. Tạo người dùng (User)
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                emailRedirectTo: `${baseUrl}/auth/callback`,
+            },
+        });
+
+        if (error) {
+            console.error('❌ [signUp Action] Lỗi đăng ký:', error.message);
+            // 🧹 FIX: Trả về object thay vì redirect trực tiếp
+            return {
+                success: false,
+                error: error.message,
+                redirectUrl: `/signup?error=${encodeURIComponent(error.message)}`
+            };
+        }
+
+        console.log('✅ [signUp Action] Đăng ký thành công, user:', data.user?.id);
+
+        // 🧹 FIX: Trả về object với thông tin thành công
+        return {
+            success: true,
+            message: 'Kiểm tra email để xác minh tài khoản của bạn.',
+            redirectUrl: '/email-verification'
+        };
+
+    } catch (error) {
+        console.error('❌ [signUp Action] Lỗi exception:', error);
+        return {
+            success: false,
+            error: 'Đã xảy ra lỗi không mong muốn',
+            redirectUrl: `/signup?error=${encodeURIComponent('Đã xảy ra lỗi không mong muốn')}`
+        };
     }
-
-    return redirect('/login?message=Kiểm tra email để xác minh tài khoản của bạn.');
 }
 
 // Xử lý Đăng xuất Supabase/Demo

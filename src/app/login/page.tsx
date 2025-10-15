@@ -1,21 +1,56 @@
 // src/app/login/page.tsx
 'use client';
 
-import { signIn } from '@/app/auth/actions';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Zap, Info } from 'lucide-react';
-import { Suspense } from 'react';
+import { Zap } from 'lucide-react';
+import { Suspense, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
-// Tài khoản demo
-const DEMO_USERNAME = "elite_leader_al";
-const DEMO_PASSWORD = "ITH_2025";
-
-// Component sử dụng useSearchParams
 function LoginContent() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const errorMessage = searchParams.get('error');
     const successMessage = searchParams.get('message');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleSubmit = async (formData: FormData) => {
+        //console.log('🚀 [Login] Bắt đầu đăng nhập');
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const email = formData.get('email') as string;
+            const password = formData.get('password') as string;
+
+            //console.log('🔐 [Login] Đang đăng nhập Supabase với:', email);
+            const supabase = createClient();
+
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (error) {
+                //console.error('❌ [Login] Lỗi đăng nhập:', error.message);
+                setError(error.message);
+                setIsLoading(false);
+                return;
+            }
+
+          //  console.log('✅ [Login] Đăng nhập thành công:', data.user?.email);
+
+            // QUAN TRỌNG: Dùng client-side navigation thay vì reload
+          //  console.log('🔄 [Login] Chuyển hướng đến dashboard (client-side)');
+            router.push('/dashboard');
+
+        } catch (err) {
+          //  console.error('❌ [Login] Lỗi exception:', err);
+            setError('Đã xảy ra lỗi không mong muốn');
+            setIsLoading(false);
+        }
+    };
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
@@ -32,8 +67,8 @@ function LoginContent() {
                     </p>
                 </div>
 
-                {/* Hướng dẫn Đăng nhập Demo */}
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700 mb-6 flex items-start">
+                {/* Hướng dẫn Đăng nhập Demo - TẠM ẨN */}
+                {/* <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700 mb-6 flex items-start">
                     <Info className="w-5 h-5 text-blue-700 dark:text-blue-400 mt-1 mr-3 flex-shrink-0" />
                     <div>
                         <h3 className="font-bold text-blue-800 dark:text-blue-300">Test Tĩnh (Demo)</h3>
@@ -44,24 +79,25 @@ function LoginContent() {
                             *Dùng email thật để đăng nhập vào tài khoản Supabase (mục đích sản xuất).*
                         </p>
                     </div>
-                </div>
+                </div> */}
 
                 {/* Form */}
-                <form className="space-y-6" action={signIn}>
+                <form className="space-y-6" action={handleSubmit}>
                     <div>
                         <label
                             htmlFor="email"
                             className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                         >
-                            Email (Hoặc Tên tài khoản Demo)
+                            Email
                         </label>
                         <input
                             id="email"
                             name="email"
-                            type="text"
+                            type="email"
                             required
-                            placeholder={`Email Supabase hoặc ${DEMO_USERNAME}`}
+                            placeholder="Nhập email của bạn"
                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition duration-200"
+                            disabled={isLoading}
                         />
                     </div>
 
@@ -77,36 +113,47 @@ function LoginContent() {
                             name="password"
                             type="password"
                             required
+                            placeholder="Nhập mật khẩu"
                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition duration-200"
+                            disabled={isLoading}
                         />
                     </div>
 
-                    {/* Hiển thị thông báo Lỗi hoặc Thành công */}
-                    {(errorMessage || successMessage) && (
-                        <div
-                            className={`p-3 rounded-lg text-sm font-medium ${
-                                errorMessage
-                                    ? 'bg-red-100 border border-red-400 text-red-700 dark:bg-red-900/30 dark:border-red-600 dark:text-red-400'
-                                    : 'bg-green-100 border border-green-400 text-green-700 dark:bg-green-900/30 dark:border-green-600 dark:text-green-400'
-                            }`}
-                        >
-                            {errorMessage || successMessage}
+                    {/* Hiển thị thông báo Lỗi */}
+                    {(errorMessage || error) && (
+                        <div className="p-3 rounded-lg text-sm font-medium bg-red-100 border border-red-400 text-red-700 dark:bg-red-900/30 dark:border-red-600 dark:text-red-400">
+                            {error || errorMessage}
+                        </div>
+                    )}
+
+                    {/* Hiển thị thông báo Thành công */}
+                    {successMessage && (
+                        <div className="p-3 rounded-lg text-sm font-medium bg-green-100 border border-green-400 text-green-700 dark:bg-green-900/30 dark:border-green-600 dark:text-green-400">
+                            {successMessage}
                         </div>
                     )}
 
                     {/* Submit Button */}
                     <button
                         type="submit"
-                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        disabled={isLoading}
+                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 transition duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:cursor-not-allowed"
                     >
-                        Đăng Nhập
+                        {isLoading ? (
+                            <>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                                Đang đăng nhập...
+                            </>
+                        ) : (
+                            'Đăng Nhập'
+                        )}
                     </button>
                 </form>
 
                 {/* Footer Link */}
                 <div className="mt-6 text-center text-sm">
                     <p className="text-gray-600 dark:text-gray-400">
-                        Chưa có tài khoản Supabase?{' '}
+                        Chưa có tài khoản?{' '}
                         <Link
                             href="/signup"
                             className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
@@ -114,6 +161,11 @@ function LoginContent() {
                             Đăng ký ngay
                         </Link>
                     </p>
+                </div>
+
+                {/* Debug Info */}
+                <div className="mt-4 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-500 dark:text-gray-400">
+                    <p>🔍 <strong>Debug:</strong> Sử dụng client-side authentication</p>
                 </div>
             </div>
         </div>

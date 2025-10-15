@@ -26,8 +26,8 @@ function LoginContent() {
 
             //console.log('🔐 [Login] Đang đăng nhập Supabase với:', email);
             const supabase = createClient();
-
-            const { data, error } = await supabase.auth.signInWithPassword({
+            // const { data, error } = await supabase.auth.signInWithPassword({
+            const { error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });

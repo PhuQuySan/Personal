@@ -1,15 +1,17 @@
 // src/components/PostForm.tsx
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, PlusCircle, Image, Link as LinkIcon, X } from 'lucide-react';
+import {Loader2, PlusCircle, Image, Link as LinkIcon, X, Upload} from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
 import { PostData, PostFormProps, ActionResult } from '@/types';
+import { uploadImage, deleteImage } from '@/lib/upload/upload-utils';
 
 // Các cấp độ truy cập
 const ACCESS_LEVELS = ['public', 'elite', 'super_elite'];
 
 export default function PostForm({ action, defaultPost }: PostFormProps) {
     const [isPending, setIsPending] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [status, setStatus] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
     const [content, setContent] = useState<string>(defaultPost?.content || '');
     const [title, setTitle] = useState<string>(defaultPost?.title || '');
@@ -21,7 +23,7 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
         if (defaultPost && formRef.current) {
             const form = formRef.current;
 
-            // Tìm input ID
+            // Tìm hoặc tạo input ID
             let idInput = form.querySelector<HTMLInputElement>('input[name="id"]');
             if (!idInput) {
                 idInput = document.createElement('input');
@@ -31,7 +33,7 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
             }
             idInput.value = defaultPost.id?.toString() || '';
 
-            // Cập nhật các giá trị khác một cách an toàn
+            // Cập nhật các giá trị khác
             const titleInput = form.querySelector<HTMLInputElement>('input[name="title"]');
             if (titleInput) titleInput.value = defaultPost.title || '';
 
@@ -50,6 +52,16 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
             const publishedInput = form.querySelector<HTMLInputElement>('input[name="is_published"]');
             if (publishedInput) publishedInput.checked = defaultPost.is_published || false;
 
+            // Cập nhật featured image input
+            let featuredImageInput = form.querySelector<HTMLInputElement>('input[name="featured_image"]');
+            if (!featuredImageInput) {
+                featuredImageInput = document.createElement('input');
+                featuredImageInput.type = 'hidden';
+                featuredImageInput.name = 'featured_image';
+                form.appendChild(featuredImageInput);
+            }
+            featuredImageInput.value = defaultPost.featured_image || '';
+
             // Cập nhật state local
             setContent(defaultPost.content || '');
             setTitle(defaultPost.title || '');
@@ -57,17 +69,47 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
         }
     }, [defaultPost]);
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+// Trong handleImageUpload function của PostForm
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            // Trong một ứng dụng thực tế, bạn sẽ tải lên đây
-            // Hiện tại, chúng ta chỉ tạo URL tạm thời
-            const imageUrl = URL.createObjectURL(file);
+        if (!file) return;
+
+        // Reset file input
+        e.target.value = '';
+
+        // Validate file
+        const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            setStatus({ type: 'error', message: 'Vui lòng chọn file ảnh (PNG, JPG, JPEG, WEBP)' });
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            setStatus({ type: 'error', message: 'Kích thước ảnh không được vượt quá 5MB' });
+            return;
+        }
+
+        setIsUploading(true);
+        setStatus(null);
+
+        try {
+            // Hiển thị preview tạm thời
+            const tempUrl = URL.createObjectURL(file);
+            setFeaturedImage(tempUrl);
+
+            console.log('🔄 Starting image upload...');
+
+            // Upload thực tế lên Supabase
+            const imageUrl = await uploadImage(file);
+
+            console.log('✅ Upload completed, URL:', imageUrl);
+
+            // Cập nhật với URL thực
             setFeaturedImage(imageUrl);
 
-            // Thêm input ẩn cho featured_image
+            // Cập nhật input ẩn cho featured_image
             if (formRef.current) {
-                let imageInput = formRef.current.elements.namedItem('featured_image') as HTMLInputElement;
+                let imageInput = formRef.current.querySelector('input[name="featured_image"]') as HTMLInputElement;
                 if (!imageInput) {
                     imageInput = document.createElement('input');
                     imageInput.type = 'hidden';
@@ -75,6 +117,43 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                     formRef.current.appendChild(imageInput);
                 }
                 imageInput.value = imageUrl;
+            }
+
+            setStatus({ type: 'success', message: 'Upload ảnh thành công!' });
+
+            // Cleanup temp URL
+            URL.revokeObjectURL(tempUrl);
+
+        } catch (error) {
+            console.error('❌ Upload error:', error);
+            setFeaturedImage('');
+            const errorMessage = error instanceof Error ? error.message : 'Upload ảnh thất bại. Vui lòng thử lại.';
+            setStatus({ type: 'error', message: errorMessage });
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleRemoveImage = async () => {
+        if (featuredImage) {
+            try {
+                // Chỉ xóa ảnh nếu là URL từ Supabase (chứa supabase.co)
+                if (featuredImage.includes('supabase.co')) {
+                    await deleteImage(featuredImage);
+                }
+            } catch (error) {
+                console.error('❌ Error removing image:', error);
+                // Vẫn tiếp tục xóa khỏi form dù có lỗi
+            }
+        }
+
+        setFeaturedImage('');
+
+        // Xóa input value
+        if (formRef.current) {
+            const imageInput = formRef.current.querySelector('input[name="featured_image"]') as HTMLInputElement;
+            if (imageInput) {
+                imageInput.value = '';
             }
         }
     };
@@ -95,11 +174,9 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
             const result: ActionResult = await action(formData);
 
             if (result && 'error' in result) {
-                // @ts-ignore
-                setStatus({ type: 'error', message: result.error });
+                setStatus({ type: 'error', message: result.error || 'Đã xảy ra lỗi.' });
             } else if (result && 'success' in result && result.success) {
                 setStatus({ type: 'success', message: result.message || 'Thao tác thành công!' });
-                // Reset form sau khi tạo mới thành công
                 if (!defaultPost) {
                     formRef.current.reset();
                     setContent('');
@@ -107,6 +184,7 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                     setFeaturedImage('');
                 }
             }
+
         } catch (error) {
             console.error('Lỗi khi gửi form:', error);
             setStatus({ type: 'error', message: 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.' });
@@ -115,10 +193,9 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
             setTimeout(() => setStatus(null), 5000);
         }
     };
-
     return (
         <div className="space-y-6">
-            {/* Featured Image */}
+            {/* Featured Image Section */}
             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Hình ảnh đại diện
@@ -128,41 +205,58 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                     <div className="relative mb-3">
                         <img
                             src={featuredImage}
-                            alt="Featured"
+                            alt="Featured preview"
                             className="w-full h-48 object-cover rounded-lg"
                         />
                         <button
                             type="button"
-                            onClick={() => setFeaturedImage('')}
-                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                            onClick={handleRemoveImage}
+                            disabled={isUploading}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 disabled:opacity-50 transition duration-200"
                         >
                             <X className="w-4 h-4" />
                         </button>
                     </div>
                 ) : (
                     <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center mb-3">
-                        <Image className="w-10 h-10 mx-auto text-gray-400" />
-                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                            Chưa có hình ảnh đại diện
-                        </p>
+                        {isUploading ? (
+                            <div className="flex flex-col items-center">
+                                <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-2" />
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Đang upload ảnh...</p>
+                            </div>
+                        ) : (
+                            <>
+                                <Upload className="w-10 h-10 mx-auto text-gray-400 mb-2" />
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    Kéo thả ảnh vào đây hoặc click để chọn
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    PNG, JPG, WEBP (tối đa 5MB)
+                                </p>
+                            </>
+                        )}
                     </div>
                 )}
 
-                <label className="block">
-                    <span className="sr-only">Chọn hình ảnh</span>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="block w-full text-sm text-gray-500
-                            file:mr-4 file:py-2 file:px-4
-                            file:rounded-md file:border-0
-                            file:text-sm file:font-semibold
-                            file:bg-blue-50 file:text-blue-700
-                            hover:file:bg-blue-100
-                            dark:file:bg-blue-900/30 dark:file:text-blue-300"
-                    />
-                </label>
+                {!featuredImage && !isUploading && (
+                    <label className="block cursor-pointer">
+                        <span className="sr-only">Chọn hình ảnh</span>
+                        <input
+                            type="file"
+                            accept="image/png, image/jpeg, image/jpg, image/webp"
+                            onChange={handleImageUpload}
+                            disabled={isUploading}
+                            className="block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-md file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100
+                                dark:file:bg-blue-900/30 dark:file:text-blue-300
+                                disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                    </label>
+                )}
             </div>
 
             {/* Main Form */}
@@ -185,7 +279,7 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                             required
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition duration-200"
                             maxLength={200}
                         />
                         <div className="absolute right-3 top-2 text-xs text-gray-500">
@@ -205,7 +299,7 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                         type="text"
                         placeholder="bai-viet-mau"
                         required
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         defaultValue={defaultPost?.slug || ''}
                     />
                 </div>
@@ -220,7 +314,7 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                         name="summary"
                         placeholder="Tóm tắt ngắn về bài viết của bạn"
                         rows={2}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         defaultValue={defaultPost?.summary || ''}
                     />
                 </div>
@@ -248,7 +342,7 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                             name="tag"
                             type="text"
                             placeholder="Ví dụ: JavaScript"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                             defaultValue={defaultPost?.tag || ''}
                         />
                     </div>
@@ -262,10 +356,12 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                             name="access_level"
                             required
                             defaultValue={defaultPost?.access_level || 'public'}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         >
                             {ACCESS_LEVELS.map(level => (
-                                <option key={level} value={level} className="capitalize">{level.toUpperCase()}</option>
+                                <option key={level} value={level} className="capitalize">
+                                    {level.replace('_', ' ').toUpperCase()}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -289,7 +385,9 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                 {/* Thông báo Trạng thái */}
                 {status && (
                     <div className={`p-3 rounded-lg text-sm font-medium ${
-                        status.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                        status.type === 'error'
+                            ? 'bg-red-100 border border-red-400 text-red-700 dark:bg-red-900/30 dark:border-red-600 dark:text-red-400'
+                            : 'bg-green-100 border border-green-400 text-green-700 dark:bg-green-900/30 dark:border-green-600 dark:text-green-400'
                     }`}>
                         {status.message}
                     </div>
@@ -298,8 +396,8 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                 {/* Submit Button */}
                 <button
                     type="submit"
-                    disabled={isPending}
-                    className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 transition duration-300 disabled:opacity-50"
+                    disabled={isPending || isUploading}
+                    className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-lg text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isPending ? (
                         <>

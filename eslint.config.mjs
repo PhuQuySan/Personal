@@ -22,7 +22,7 @@ const eslintConfig = [
     ],
     rules: {
       // Tắt cảnh báo về biến không sử dụng (chuyển thành warn)
-      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": "off",
 
       // Yêu cầu sử dụng @ts-expect-error thay vì @ts-ignore
       "@typescript-eslint/ban-ts-comment": [

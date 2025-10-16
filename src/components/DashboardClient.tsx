@@ -4,10 +4,12 @@
 import { useState } from 'react';
 import LinkForm from '@/components/LinkForm';
 import { upsertUserLink } from '@/app/auth/link.actions';
-import { User, Zap, FileText, Settings, Link as LinkIcon, ExternalLink, Edit, Trash2, User as UserIcon } from 'lucide-react';
+import { User, Zap, FileText, Settings, Link as LinkIcon, ExternalLink, Edit, Copy, Check  , Trash2, User as UserIcon } from 'lucide-react';
 import Link from "next/link";
 import { ActionResult } from '@/types';
 import { Loader2 } from 'lucide-react';
+import toast from "react-hot-toast";
+
 
 // Giả định các kiểu dữ liệu đã được import từ types/index.ts hoặc được định nghĩa ở đây
 interface UserProfile {
@@ -78,15 +80,17 @@ export default function DashboardClient({ initialProfile, initialLinks }: Dashbo
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* 1. Profile Summary */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-10">
-                <div className="flex items-center space-x-4">
-                    <UserIcon className="w-16 h-16 text-blue-600 dark:text-blue-400 p-2 bg-blue-50 dark:bg-gray-700 rounded-full" />
-                    <div>
-                        <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">
+                <div className="flex flex-wrap items-center gap-4 sm:space-x-4">
+                    <UserIcon className="w-14 h-14 sm:w-16 sm:h-16 text-blue-600 dark:text-blue-400 p-2 bg-blue-50 dark:bg-gray-700 rounded-full flex-shrink-0" />
+
+                    <div className="min-w-0">
+                        <h1 className="text-fluid font-extrabold text-gray-900 dark:text-white leading-tight break-words">
                             Chào mừng, {profile.full_name || 'Người dùng'}!
                         </h1>
-                        <div className="mt-1 flex items-center space-x-2">
+
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
                             {getRoleTag(profile.user_role)}
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                                 ({profile.user_role.toUpperCase()} Member)
                             </p>
                         </div>
@@ -94,32 +98,75 @@ export default function DashboardClient({ initialProfile, initialLinks }: Dashbo
                 </div>
             </div>
 
+
             {/* 2. Quản lý Links - Chỉ Elite/Super Elite/Normal mới có Link */}
             {(isNormalOrDemo || isEliteOrHigher) && (
                 <div className="mb-12 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Danh sách liên kết */}
                     <div className="lg:col-span-2">
                         <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-6 flex items-center">
                             <LinkIcon className="w-7 h-7 mr-3 text-green-600 dark:text-green-400" />
                             Liên kết cá nhân ({links.length})
                         </h2>
+
                         {links.length === 0 ? (
                             <div className="p-6 text-center bg-gray-50 dark:bg-gray-750 rounded-lg border border-dashed border-gray-300 dark:border-gray-600">
-                                <p className="text-gray-500 dark:text-gray-400">Bạn chưa có liên kết nào. Hãy thêm một liên kết!</p>
+                                <p className="text-gray-500 dark:text-gray-400">
+                                    Bạn chưa có liên kết nào. Hãy thêm một liên kết!
+                                </p>
                             </div>
                         ) : (
                             <div className="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
                                 <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                                     {links.map((link) => (
-                                        <li key={link.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-750 flex justify-between items-center">
-                                            <div>
-                                                <p className="font-semibold text-gray-900 dark:text-white">{link.link_name}</p>
-                                                <p className="text-sm text-blue-600 dark:text-blue-400 truncate max-w-xs">{link.link_url}</p>
+                                        <li
+                                            key={link.id}
+                                            className="p-4 hover:bg-gray-50 dark:hover:bg-gray-750 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition"
+                                        >
+                                            {/* Thông tin link */}
+                                            <div className="min-w-0">
+                                                <p className="font-semibold text-gray-900 dark:text-white break-words">
+                                                    {link.link_name}
+                                                </p>
+                                                <p className="text-sm text-blue-600 dark:text-blue-400 truncate max-w-xs">
+                                                    {link.link_url}
+                                                </p>
                                             </div>
-                                            <div className="flex space-x-2">
-                                                <a href={link.link_url} target="_blank" rel="noopener noreferrer" className="p-2 text-blue-500 hover:bg-blue-100 rounded-full transition">
+
+                                            {/* Các nút thao tác */}
+                                            <div className="flex space-x-2 shrink-0">
+                                                {/* Nút sao chép */}
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            await navigator.clipboard.writeText(link.link_url);
+                                                            toast.success('Đã sao chép liên kết!', { duration: 2000 });
+                                                        } catch (err) {
+                                                            toast.error('Không thể sao chép liên kết.');
+                                                        }
+                                                    }}
+                                                    className="p-2 text-green-500 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-full transition"
+                                                    title="Sao chép liên kết"
+                                                >
+                                                    <Copy className="w-4 h-4" />
+                                                </button>
+
+                                                {/* Mở liên kết */}
+                                                <a
+                                                    href={link.link_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition"
+                                                    title="Mở liên kết"
+                                                >
                                                     <ExternalLink className="w-4 h-4" />
                                                 </a>
-                                                <button className="p-2 text-red-500 hover:bg-red-100 rounded-full transition">
+
+                                                {/* Xóa liên kết */}
+                                                <button
+                                                    className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition"
+                                                    title="Xóa liên kết"
+                                                >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
@@ -130,12 +177,16 @@ export default function DashboardClient({ initialProfile, initialLinks }: Dashbo
                         )}
                     </div>
 
+                    {/* Form thêm liên kết */}
                     <div className="lg:col-span-1">
-                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6 lg:mt-11">Thêm Link</h2>
+                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6 lg:mt-11">
+                            Thêm Link
+                        </h2>
                         <LinkForm action={handleLinkAction} isPending={isSubmittingLink} />
                     </div>
                 </div>
             )}
+
 
             {/* 3. Quick Access / Admin Menu */}
             <div className='mb-12'>

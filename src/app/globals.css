@@ -48,5 +48,7 @@ html {
 }
 
 @layer utilities {
-  /* Custom utilities */
+  .text-fluid {
+    font-size: clamp(1.25rem, 2vw + 0.5rem, 2rem); /* Tự điều chỉnh giữa mobile và desktop */
+  }
 }

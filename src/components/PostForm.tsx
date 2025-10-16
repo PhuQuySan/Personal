@@ -1,75 +1,100 @@
 // src/components/PostForm.tsx
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import {Loader2, PlusCircle, Image, Link as LinkIcon, X, Upload} from 'lucide-react';
+import { Loader2, PlusCircle, Image, X, Upload } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
 import { PostData, PostFormProps, ActionResult } from '@/types';
 import { uploadImage, deleteImage } from '@/lib/upload/upload-utils';
 
-// Các cấp độ truy cập
 const ACCESS_LEVELS = ['public', 'elite', 'super_elite'];
 
 export default function PostForm({ action, defaultPost }: PostFormProps) {
     const [isPending, setIsPending] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [status, setStatus] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
-    const [content, setContent] = useState<string>(defaultPost?.content || '');
-    const [title, setTitle] = useState<string>(defaultPost?.title || '');
-    const [featuredImage, setFeaturedImage] = useState<string>(defaultPost?.featured_image || '');
+    const [content, setContent] = useState<string>('');
+    const [title, setTitle] = useState<string>('');
+    const [featuredImage, setFeaturedImage] = useState<string>('');
     const formRef = useRef<HTMLFormElement>(null);
 
-    // Thêm useEffect để điền giá trị mặc định khi defaultPost thay đổi
+    // QUAN TRỌNG: Reset form khi defaultPost thay đổi
     useEffect(() => {
-        if (defaultPost && formRef.current) {
+        // console.log('🔄 PostForm: defaultPost changed', {
+        //     hasData: !!defaultPost,
+        //     id: defaultPost?.id,
+        //     title: defaultPost?.title,
+        //     hasSummary: !!defaultPost?.summary,
+        //     hasContent: !!defaultPost?.content,
+        //     hasFeaturedImage: !!defaultPost?.featured_image,
+        //     summaryLength: defaultPost?.summary?.length,
+        //     contentLength: defaultPost?.content?.length,
+        //     featuredImage: defaultPost?.featured_image
+        // });
+
+        if (formRef.current) {
             const form = formRef.current;
+            form.reset(); // Reset form trước
 
-            // Tìm hoặc tạo input ID
-            let idInput = form.querySelector<HTMLInputElement>('input[name="id"]');
-            if (!idInput) {
-                idInput = document.createElement('input');
-                idInput.type = 'hidden';
-                idInput.name = 'id';
-                form.appendChild(idInput);
+            if (defaultPost) {
+                // Tìm hoặc tạo input ID
+                let idInput = form.querySelector<HTMLInputElement>('input[name="id"]');
+                if (!idInput) {
+                    idInput = document.createElement('input');
+                    idInput.type = 'hidden';
+                    idInput.name = 'id';
+                    form.appendChild(idInput);
+                }
+                idInput.value = defaultPost.id?.toString() || '';
+
+                // Cập nhật các input khác
+                const titleInput = form.querySelector<HTMLInputElement>('input[name="title"]');
+                if (titleInput) titleInput.value = defaultPost.title || '';
+
+                const slugInput = form.querySelector<HTMLInputElement>('input[name="slug"]');
+                if (slugInput) slugInput.value = defaultPost.slug || '';
+
+                const summaryInput = form.querySelector<HTMLTextAreaElement>('textarea[name="summary"]');
+                if (summaryInput) summaryInput.value = defaultPost.summary || '';
+
+                const tagInput = form.querySelector<HTMLInputElement>('input[name="tag"]');
+                if (tagInput) tagInput.value = defaultPost.tag || '';
+
+                const accessSelect = form.querySelector<HTMLSelectElement>('select[name="access_level"]');
+                if (accessSelect) accessSelect.value = defaultPost.access_level || 'public';
+
+                const publishedInput = form.querySelector<HTMLInputElement>('input[name="is_published"]');
+                if (publishedInput) publishedInput.checked = defaultPost.is_published || false;
+
+                // Cập nhật featured image input
+                let featuredImageInput = form.querySelector<HTMLInputElement>('input[name="featured_image"]');
+                if (!featuredImageInput) {
+                    featuredImageInput = document.createElement('input');
+                    featuredImageInput.type = 'hidden';
+                    featuredImageInput.name = 'featured_image';
+                    form.appendChild(featuredImageInput);
+                }
+                featuredImageInput.value = defaultPost.featured_image || '';
+            } else {
+                // Nếu không có defaultPost (tạo mới), xóa input id nếu có
+                const idInput = form.querySelector<HTMLInputElement>('input[name="id"]');
+                if (idInput) {
+                    idInput.remove();
+                }
+
+                // Xóa featured_image input
+                const featuredImageInput = form.querySelector<HTMLInputElement>('input[name="featured_image"]');
+                if (featuredImageInput) {
+                    featuredImageInput.remove();
+                }
             }
-            idInput.value = defaultPost.id?.toString() || '';
 
-            // Cập nhật các giá trị khác
-            const titleInput = form.querySelector<HTMLInputElement>('input[name="title"]');
-            if (titleInput) titleInput.value = defaultPost.title || '';
-
-            const slugInput = form.querySelector<HTMLInputElement>('input[name="slug"]');
-            if (slugInput) slugInput.value = defaultPost.slug || '';
-
-            const summaryInput = form.querySelector<HTMLTextAreaElement>('textarea[name="summary"]');
-            if (summaryInput) summaryInput.value = defaultPost.summary || '';
-
-            const tagInput = form.querySelector<HTMLInputElement>('input[name="tag"]');
-            if (tagInput) tagInput.value = defaultPost.tag || '';
-
-            const accessSelect = form.querySelector<HTMLSelectElement>('select[name="access_level"]');
-            if (accessSelect) accessSelect.value = defaultPost.access_level || 'public';
-
-            const publishedInput = form.querySelector<HTMLInputElement>('input[name="is_published"]');
-            if (publishedInput) publishedInput.checked = defaultPost.is_published || false;
-
-            // Cập nhật featured image input
-            let featuredImageInput = form.querySelector<HTMLInputElement>('input[name="featured_image"]');
-            if (!featuredImageInput) {
-                featuredImageInput = document.createElement('input');
-                featuredImageInput.type = 'hidden';
-                featuredImageInput.name = 'featured_image';
-                form.appendChild(featuredImageInput);
-            }
-            featuredImageInput.value = defaultPost.featured_image || '';
-
-            // Cập nhật state local
-            setContent(defaultPost.content || '');
-            setTitle(defaultPost.title || '');
-            setFeaturedImage(defaultPost.featured_image || '');
+            // Cập nhật state local - QUAN TRỌNG
+            setContent(defaultPost?.content || '');
+            setTitle(defaultPost?.title || '');
+            setFeaturedImage(defaultPost?.featured_image || '');
         }
-    }, [defaultPost]);
+    }, [defaultPost]); // Chỉ chạy khi defaultPost thay đổi
 
-// Trong handleImageUpload function của PostForm
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -143,7 +168,6 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                 }
             } catch (error) {
                 console.error('❌ Error removing image:', error);
-                // Vẫn tiếp tục xóa khỏi form dù có lỗi
             }
         }
 
@@ -177,6 +201,8 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                 setStatus({ type: 'error', message: result.error || 'Đã xảy ra lỗi.' });
             } else if (result && 'success' in result && result.success) {
                 setStatus({ type: 'success', message: result.message || 'Thao tác thành công!' });
+
+                // Reset form sau khi tạo mới thành công
                 if (!defaultPost) {
                     formRef.current.reset();
                     setContent('');
@@ -184,7 +210,6 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                     setFeaturedImage('');
                 }
             }
-
         } catch (error) {
             console.error('Lỗi khi gửi form:', error);
             setStatus({ type: 'error', message: 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.' });
@@ -193,6 +218,7 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
             setTimeout(() => setStatus(null), 5000);
         }
     };
+
     return (
         <div className="space-y-6">
             {/* Featured Image Section */}
@@ -299,8 +325,8 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                         type="text"
                         placeholder="bai-viet-mau"
                         required
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         defaultValue={defaultPost?.slug || ''}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     />
                 </div>
 
@@ -314,8 +340,8 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                         name="summary"
                         placeholder="Tóm tắt ngắn về bài viết của bạn"
                         rows={2}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         defaultValue={defaultPost?.summary || ''}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     />
                 </div>
 
@@ -342,8 +368,8 @@ export default function PostForm({ action, defaultPost }: PostFormProps) {
                             name="tag"
                             type="text"
                             placeholder="Ví dụ: JavaScript"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                             defaultValue={defaultPost?.tag || ''}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         />
                     </div>
 

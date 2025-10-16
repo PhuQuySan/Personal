@@ -6,6 +6,7 @@ import "./globals.css";
 // import {AuthProvider} from "@/components/AuthProvider";
 import {Navigation} from "@/components/Navigation"; // Đảm bảo CSS được import
 // import { LoadingProvider } from "@/contexts/LoadingContext";
+import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,9 +28,10 @@ export default function RootLayout({
         {/*<LoadingProvider>*/}
             <Navigation /> {/* Thanh điều hướng ở đây */}
 
-
-            <main style={{ padding: '20px' }}>
+        {/*<main style={{ padding: '20px' }}>*/}
+            <main >
                 {children}
+                <Toaster position="top-center" reverseOrder={false} />
             </main>
         {/*</LoadingProvider>*/}
 

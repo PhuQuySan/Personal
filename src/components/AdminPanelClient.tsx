@@ -92,19 +92,50 @@ export default function AdminPanelClient({ initialPosts, userRole, userId }: Ext
      * Tải lại danh sách bài viết từ API endpoint.
      * Dữ liệu tải lại này phải bao gồm tất cả các bài viết cho Admin.
      */
+// Trong AdminPanelClient.tsx - sửa reloadPostsFromApi
     const reloadPostsFromApi = async () => {
         setIsActionPending(true);
         try {
-            // Sẽ gọi API Route mà chúng ta đã FIX ở Cấp Bách 4
+            // console.log('🔄 Đang tải lại bài viết từ API...');
             const response = await fetch('/api/posts');
+
             if (response.ok) {
                 const data = await response.json();
-                setPosts(data.posts || []);
+                // console.log('✅ API response:', data);
+
+                // VALIDATION: Đảm bảo data hợp lệ
+                if (!data.posts || !Array.isArray(data.posts)) {
+                //    console.error('❌ API trả về data không hợp lệ:', data);
+                    setPosts([]);
+                    return;
+                }
+
+                // Thêm fallback cho từng post
+                const validatedPosts = data.posts.map((post: any) => ({
+                    id: post.id || 0,
+                    title: post.title || 'Không có tiêu đề',
+                    slug: post.slug || '',
+                    summary: post.summary || '',
+                    content: post.content || '',
+                    tag: post.tag || '',
+                    is_published: Boolean(post.is_published),
+                    access_level: post.access_level || 'public',
+                    featured_image: post.featured_image || '',
+                    created_at: post.created_at || new Date().toISOString(),
+                    user_id: post.user_id || '',
+                    profiles: post.profiles || { full_name: 'Unknown' }
+                }));
+
+              //  console.log('📋 Validated posts:', validatedPosts.length);
+                setPosts(validatedPosts);
+
             } else {
-                console.error('Failed to fetch posts:', response.statusText);
+               // console.error('❌ Failed to fetch posts:', response.status, response.statusText);
+                const errorText = await response.text();
+               // console.error('Error details:', errorText);
             }
         } catch (error) {
-            console.error('Lỗi khi tải lại bài viết:', error);
+           // console.error('❌ Lỗi khi tải lại bài viết:', error);
         } finally {
             setIsActionPending(false);
         }
@@ -129,7 +160,7 @@ export default function AdminPanelClient({ initialPosts, userRole, userId }: Ext
                 return { success: false, error: result?.error || 'Đã xảy ra lỗi không xác định' };
             }
         } catch (error) {
-            console.error('Lỗi khi lưu bài viết:', error);
+          //  console.error('Lỗi khi lưu bài viết:', error);
             return { success: false, error: 'Có lỗi xảy ra khi lưu bài viết' };
         } finally {
             setIsActionPending(false);
@@ -290,8 +321,19 @@ export default function AdminPanelClient({ initialPosts, userRole, userId }: Ext
                                                         <Globe className="w-4 h-4" />
                                                     </Link>
 
+                                                    {/*// Trong phần render list posts - thêm debug cho mỗi nút edit*/}
                                                     <button
                                                         onClick={() => {
+                                                            // console.log('🔍 CLICK EDIT - POST DATA:', {
+                                                            //     id: post.id,
+                                                            //     title: post.title,
+                                                            //     hasSummary: !!post.summary,
+                                                            //     hasContent: !!post.content,
+                                                            //     hasFeaturedImage: !!post.featured_image,
+                                                            //     summary: post.summary?.substring(0, 50) + '...',
+                                                            //     content: post.content?.substring(0, 100) + '...',
+                                                            //     featured_image: post.featured_image
+                                                            // });
                                                             setEditingPost(post);
                                                             setIsCreatingNew(false);
                                                         }}

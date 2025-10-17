@@ -16,7 +16,6 @@ function LoginContent() {
     const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = async (formData: FormData) => {
-        //console.log('🚀 [Login] Bắt đầu đăng nhập');
         setIsLoading(true);
         setError(null);
 
@@ -24,29 +23,25 @@ function LoginContent() {
             const email = formData.get('email') as string;
             const password = formData.get('password') as string;
 
-            //console.log('🔐 [Login] Đang đăng nhập Supabase với:', email);
             const supabase = createClient();
-            // const { data, error } = await supabase.auth.signInWithPassword({
             const { error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
 
             if (error) {
-                //console.error('❌ [Login] Lỗi đăng nhập:', error.message);
                 setError(error.message);
                 setIsLoading(false);
                 return;
             }
 
-          //  console.log('✅ [Login] Đăng nhập thành công:', data.user?.email);
-
-            // QUAN TRỌNG: Dùng client-side navigation thay vì reload
-          //  console.log('🔄 [Login] Chuyển hướng đến dashboard (client-side)');
-            router.push('/dashboard');
+            // ✅ GIẢI PHÁP: Sử dụng router.refresh()
+            // Lệnh này sẽ làm mới trang, chạy lại middleware với session mới.
+            // Middleware sẽ tự động điều hướng người dùng đến /dashboard.
+            router.refresh();
 
         } catch (err) {
-          //  console.error('❌ [Login] Lỗi exception:', err);
+            console.error('❌ [Login] Lỗi exception:', err);
             setError('Đã xảy ra lỗi không mong muốn');
             setIsLoading(false);
         }
@@ -66,20 +61,6 @@ function LoginContent() {
                         Truy cập khu vực tài nguyên độc quyền.
                     </p>
                 </div>
-
-                {/* Hướng dẫn Đăng nhập Demo - TẠM ẨN */}
-                {/* <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700 mb-6 flex items-start">
-                    <Info className="w-5 h-5 text-blue-700 dark:text-blue-400 mt-1 mr-3 flex-shrink-0" />
-                    <div>
-                        <h3 className="font-bold text-blue-800 dark:text-blue-300">Test Tĩnh (Demo)</h3>
-                        <p className="text-sm text-blue-700 dark:text-blue-400">
-                            Nhập: **`{DEMO_USERNAME}`** (tên tài khoản) / **`{DEMO_PASSWORD}`** (mật khẩu)
-                        </p>
-                        <p className="text-xs text-blue-600 dark:text-blue-500 mt-1">
-                            *Dùng email thật để đăng nhập vào tài khoản Supabase (mục đích sản xuất).*
-                        </p>
-                    </div>
-                </div> */}
 
                 {/* Form */}
                 <form className="space-y-6" action={handleSubmit}>

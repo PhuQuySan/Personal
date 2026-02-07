@@ -1,3 +1,5 @@
+// src/middleware.ts
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
@@ -6,12 +8,34 @@ export async function middleware(request: NextRequest) {
         request: { headers: request.headers },
     });
 
+    // Add performance and caching headers
+    response.headers.set('X-DNS-Prefetch-Control', 'on');
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+
+    // Cache static assets
+    if (request.nextUrl.pathname.startsWith('/_next/static/')) {
+        response.headers.set(
+            'Cache-Control',
+            'public, max-age=31536000, immutable'
+        );
+    }
+
+    // Cache images
+    if (request.nextUrl.pathname.startsWith('/_next/image/')) {
+        response.headers.set(
+            'Cache-Control',
+            'public, max-age=31536000, immutable'
+        );
+    }
+
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
-                get(name: string) { return request.cookies.get(name)?.value },
+                get(name: string) {
+                    return request.cookies.get(name)?.value;
+                },
                 set(name, value, options) {
                     response.cookies.set({ name, value, ...options });
                 },
@@ -55,10 +79,14 @@ export const config = {
          * Chỉ chạy Middleware trên các trang cụ thể để tối ưu tốc độ load:
          * 1. Dashboard & Admin
          * 2. Login & Signup
+         * 3. Email Verification
+         * 4. Static assets & images (for caching headers)
          */
         '/dashboard/:path*',
         '/login',
         '/signup',
-        '/email-verification', // Thêm dòng này
+        '/email-verification',
+        '/_next/static/:path*',
+        '/_next/image/:path*',
     ],
 };

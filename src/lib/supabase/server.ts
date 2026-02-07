@@ -14,14 +14,14 @@ export async function createServer() {
                     return cookieStore.getAll();
                 },
                 setAll(cookiesToSet) {
+                    // Tối ưu: Chỉ log lỗi trong môi trường dev hoặc xử lý tập trung ở Middleware
                     try {
                         cookiesToSet.forEach(({ name, value, options }) =>
                             cookieStore.set(name, value, options)
                         );
-                    } catch (error) {
-                        // The `setAll` method was called from a Server Component.
-                        // This can be ignored if you have middleware refreshing user sessions.
-                        console.error('Error setting cookies:', error);
+                    } catch {
+                        // Việc setAll thất bại ở Server Component là bình thường.
+                        // Đừng để console.error làm rối log của bạn trừ khi thực sự cần.
                     }
                 },
             },

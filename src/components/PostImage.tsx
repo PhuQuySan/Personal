@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { ImageIcon } from 'lucide-react';
 
 interface PostImageProps {
-    src: string | null;
+    src: string | null | undefined;
     alt: string;
     className?: string;
 }
@@ -27,6 +27,7 @@ export default function PostImage({ src, alt, className = '' }: PostImageProps) 
             alt={alt}
             className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${className}`}
             onError={() => setImageError(true)}
+            loading="lazy"
         />
     );
 }

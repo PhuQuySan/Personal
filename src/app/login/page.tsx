@@ -6,8 +6,11 @@ import Link from 'next/link';
 import { Zap, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { Suspense, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { QRLoginModal } from '@/components/QRMethod/QRLoginModal';
+
 
 function LoginContent() {
+    const [showQR, setShowQR] = useState(false);
     const searchParams = useSearchParams();
     const router = useRouter();
     const errorMessage = searchParams.get('error');
@@ -48,6 +51,7 @@ function LoginContent() {
     };
 
     return (
+        <>
         <div className="min-h-screen flex">
             {/* Left Panel - Form */}
             <div className="flex-1 flex items-center justify-center p-8 bg-white dark:bg-gray-900">
@@ -174,6 +178,17 @@ function LoginContent() {
                             </div>
                         </div>
 
+                        {/* QR Login */}
+                        <button
+                            type="button"
+                            onClick={() => setShowQR(true)}
+                            className="group relative w-full flex items-center justify-center py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-xl text-base font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 shadow-sm"
+                        >
+                            <span className="mr-2">📱</span>
+                            Đăng nhập bằng QR
+                        </button>
+
+
                         {/* Sign Up Link */}
                         <div className="text-center">
                             <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -231,8 +246,13 @@ function LoginContent() {
                 </div>
             </div>
         </div>
+
+            {/* QR MODAL - GLOBAL LAYER */}
+            {showQR && <QRLoginModal onClose={() => setShowQR(false)} />}
+        </>
     );
 }
+
 
 export default function LoginPage() {
     return (

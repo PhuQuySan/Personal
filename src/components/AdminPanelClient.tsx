@@ -22,7 +22,7 @@ import {
     Users
 } from 'lucide-react';
 import PostForm from './PostForm';
-import {Post, AdminPanelClientProps, ActionResult, UserProfile} from '@/types';
+import {Post, AdminPanelClientProps, ActionResult, UserProfile, PostData} from '@/types';
 
 
 /**
@@ -260,7 +260,7 @@ export default function AdminPanelClient({ initialPosts, userRole, userId }: Ext
                         <div className='mb-8 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700'>
                             <PostForm
                                 action={handleFormSubmit}
-                                defaultPost={currentFormDefaultPost}
+                                defaultPost={currentFormDefaultPost as PostData}
                             />
                         </div>
                     )}

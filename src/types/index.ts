@@ -20,7 +20,7 @@ export interface Post {
     summary?: string | null;
     tag?: string | null;
     featured_image?: string | null;
-    profiles?: ProfileData[] | ProfileData | null;
+    profiles?: ProfileData[] | null;
 }
 
 // Các interface khác giữ nguyên...
@@ -117,10 +117,19 @@ export interface RichTextEditorProps {
     placeholder?: string;
 }
 
-type UserRole = 'normal' | 'elite' | 'super_elite' | 'demo';
+export type UserRole = 'normal' | 'elite' | 'super_elite' | 'demo';
 
 export interface UserProfile {
     full_name: string | null;
     avatar_url: string | null;
     user_role: UserRole;  // Đổi từ "role" thành "user_role"
+}
+
+// Thêm interface cho NavLink để Navigation dùng luôn
+export interface NavLink {
+    name: string;
+    href: string;
+    icon: React.ReactNode;
+    requiredRoles?: UserRole[];
+    hiddenOnMobile?: boolean;
 }

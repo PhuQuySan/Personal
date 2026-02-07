@@ -1,22 +1,29 @@
 // src/types/index.ts
 
 // src/types.ts
+
+
+export interface ProfileData {
+    full_name: string | null;
+    avatar_url?: string | null;
+}
+
 export interface Post {
     id: number;
     title: string;
     slug: string;
-    content: string;
-    summary?: string;
-    tag?: string;
-    is_published: boolean;
-    access_level: 'public' | 'elite' | 'super_elite';
     created_at: string;
-    featured_image?: string ;
-    user_id: string; // Thêm thuộc tính này
-    profiles?: {
-        full_name: string | null;
-    }[] | null;
+    access_level: 'public' | 'elite' | 'super_elite';
+    content?: string;              // Thêm ?
+    is_published?: boolean;        // Thêm ?
+    user_id?: string;              // Thêm ?
+    summary?: string | null;
+    tag?: string | null;
+    featured_image?: string | null;
+    profiles?: ProfileData[] | ProfileData | null;
 }
+
+// Các interface khác giữ nguyên...
 export interface PostData {
     id?: number;
     title?: string;

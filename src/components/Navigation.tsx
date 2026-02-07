@@ -13,7 +13,6 @@ import { createClient } from '@/lib/supabase/client';
 import { UserRole, UserProfile, NavLink } from '@/types';
 import { usePrefetch } from '@/hooks/usePrefetch';
 
-
 async function fetchUserProfile(): Promise<UserProfile | null> {
     if (typeof window === 'undefined') return null;
 

@@ -142,6 +142,7 @@ export function QRLoginModal({ onClose }: { onClose: () => void }) {
                     )}
                 </div>
 
+
                 <div className="mt-6 text-[11px] text-gray-400 uppercase tracking-widest">
                     Elite Leader Security System
                 </div>

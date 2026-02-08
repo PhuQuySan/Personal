@@ -1,96 +1,151 @@
+// src/app/qr-confirm/page.tsx
 'use client';
+
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { Check, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { CheckCircle, Shield, XCircle, Loader2 } from 'lucide-react';
 
 export default function QRConfirmPage() {
-    const searchParams = useSearchParams();
-    const token = searchParams.get('token');
-    const [loading, setLoading] = useState(false);
-    const [done, setDone] = useState(false);
-    const [user, setUser] = useState<any>(null);
-    const [checkingAuth, setCheckingAuth] = useState(true);
+    const params = useSearchParams();
+    const encodedData = params.get('d'); // Đổi từ 'token' sang 'd' (data)
     const router = useRouter();
 
+    const [status, setStatus] = useState<'LOADING' | 'READY' | 'SUCCESS' | 'ERROR'>('LOADING');
+    const [error, setError] = useState<string | null>(null);
+    const [decodedToken, setDecodedToken] = useState<string | null>(null);
+
     useEffect(() => {
-        // Kiểm tra xem điện thoại đã login chưa
-        const checkUser = async () => {
+        const init = async () => {
+            if (!encodedData) {
+                setError('Mã QR không hợp lệ');
+                setStatus('ERROR');
+                return;
+            }
+
+            // Giải mã token
+            try {
+                const decodeRes = await fetch('/api/qr/decode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ encoded: encodedData })
+                });
+
+                const decodeData = await decodeRes.json();
+
+                if (!decodeData.token) {
+                    setError('Không thể giải mã QR');
+                    setStatus('ERROR');
+                    return;
+                }
+
+                setDecodedToken(decodeData.token);
+
+            } catch (e) {
+                setError('Mã QR không hợp lệ hoặc đã hết hạn');
+                setStatus('ERROR');
+                return;
+            }
+
+            // Kiểm tra đăng nhập
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
+
             if (!user) {
-                // Nếu chưa login, bắt login trên điện thoại trước
-                router.push(`/login?returnUrl=/qr-confirm?token=${token}`);
-            } else {
-                setUser(user);
+                router.push(`/login?redirect=/qr-confirm?d=${encodedData}`);
+                return;
             }
-            setCheckingAuth(false);
+
+            setStatus('READY');
         };
-        checkUser();
-    }, [token, router]);
+
+        init();
+    }, [encodedData, router]);
 
     const handleConfirm = async () => {
-        if (!token || !user) return;
-        setLoading(true);
         try {
+            setStatus('LOADING');
+
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                setError('Vui lòng đăng nhập trước');
+                setStatus('ERROR');
+                return;
+            }
+
             const res = await fetch('/api/qr/confirm', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token }),
+                body: JSON.stringify({
+                    token: decodedToken,
+                    user_id: user.id
+                })
             });
+
             const data = await res.json();
 
-            if (res.ok) {
-                setDone(true);
+            if (data.success) {
+                setStatus('SUCCESS');
+                setTimeout(() => {
+                    router.push('/dashboard');
+                }, 2000);
             } else {
-                alert(data.error || 'Lỗi xác nhận');
+                setError(data.message || 'Xác nhận thất bại');
+                setStatus('ERROR');
             }
+
         } catch (e) {
-            alert('Lỗi kết nối server');
-        } finally {
-            setLoading(false);
+            setError('Lỗi kết nối server');
+            setStatus('ERROR');
         }
     };
 
-    if (checkingAuth) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
-
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-50 dark:bg-gray-900">
-            <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl text-center">
-                <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <ShieldCheck className="w-10 h-10 text-blue-600" />
-                </div>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl">
 
-                <h1 className="text-2xl font-bold mb-2">Xác nhận quyền</h1>
-                <p className="text-gray-500 dark:text-gray-400 mb-8">
-                    Bạn đang thực hiện đăng nhập vào hệ thống trên **Máy tính**.
+                <Shield className="w-16 h-16 mx-auto text-blue-600 dark:text-blue-400 mb-4" />
+                <h1 className="text-2xl font-bold mb-2 dark:text-white">Xác nhận đăng nhập</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
+                    Thiết bị này sẽ đăng nhập vào tài khoản của bạn
                 </p>
 
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl mb-8 flex items-center gap-3 text-left">
-                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                        {user?.email?.[0].toUpperCase()}
+                {status === 'LOADING' && (
+                    <div className="flex flex-col items-center gap-3">
+                        <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+                        <p className="text-sm text-gray-500">Đang xử lý...</p>
                     </div>
-                    <div>
-                        <p className="text-xs text-gray-500">Đăng nhập với tư cách</p>
-                        <p className="text-sm font-semibold truncate">{user?.email}</p>
-                    </div>
-                </div>
+                )}
 
-                {!done ? (
+                {status === 'READY' && (
                     <button
                         onClick={handleConfirm}
-                        disabled={loading}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-bold flex justify-center items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                        className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg"
                     >
-                        {loading ? <Loader2 className="animate-spin" /> : 'XÁC NHẬN TRÊN PC'}
+                        Xác nhận đăng nhập
                     </button>
-                ) : (
-                    <div className="flex flex-col items-center animate-in zoom-in duration-300">
-                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                            <Check className="text-green-600 w-8 h-8" />
-                        </div>
-                        <p className="text-green-600 font-bold text-lg">Đã cấp quyền thành công!</p>
-                        <p className="text-sm text-gray-400 mt-2">Máy tính của bạn sẽ tự động đăng nhập trong giây lát.</p>
+                )}
+
+                {status === 'SUCCESS' && (
+                    <div className="text-green-500 flex flex-col items-center gap-3">
+                        <CheckCircle className="w-16 h-16" />
+                        <p className="font-semibold text-lg">Đã xác nhận thành công!</p>
+                        <p className="text-xs text-gray-400">Đang chuyển hướng...</p>
+                    </div>
+                )}
+
+                {status === 'ERROR' && (
+                    <div className="text-red-500 flex flex-col items-center gap-3">
+                        <XCircle className="w-12 h-12" />
+                        <p className="font-semibold">{error}</p>
+                        <button
+                            onClick={() => router.push('/login')}
+                            className="mt-4 px-6 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                        >
+                            Quay lại đăng nhập
+                        </button>
                     </div>
                 )}
             </div>

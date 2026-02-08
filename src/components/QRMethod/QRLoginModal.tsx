@@ -1,12 +1,13 @@
+// src/components/QRMethod/QRLoginModal.tsx
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQRLogin } from '@/hooks/useQRLogin';
 import { CheckCircle, RefreshCw, XCircle, Loader2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
-// Load QRCodeCanvas động để tránh lỗi ReferenceError: QRCode is not defined trên Server
 const QRCodeCanvas = dynamic(
     () => import('qrcode.react').then((mod) => mod.QRCodeCanvas),
     { ssr: false }
@@ -14,38 +15,64 @@ const QRCodeCanvas = dynamic(
 
 export function QRLoginModal({ onClose }: { onClose: () => void }) {
     const { token, status, createQR, reset } = useQRLogin();
+    const [encodedToken, setEncodedToken] = useState<string | null>(null);
     const router = useRouter();
+    const supabase = createClient();
 
     useEffect(() => {
         createQR();
     }, [createQR]);
 
+    // Mã hóa token trước khi hiển thị QR
+    useEffect(() => {
+        if (token && status === 'PENDING') {
+            fetch('/api/qr/encode', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.encoded) {
+                        setEncodedToken(data.encoded);
+                    }
+                })
+                .catch(err => console.error('Encode error:', err));
+        }
+    }, [token, status]);
+
+    // Lắng nghe Auth State Change
+    useEffect(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
+                console.log('✅ QR Auth State Change: Thành công');
+                router.push('/dashboard');
+                router.refresh();
+                setTimeout(() => onClose(), 500);
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, [supabase, router, onClose]);
+
+    // UI phản hồi
     useEffect(() => {
         if (status === 'SUCCESS') {
             const timer = setTimeout(() => {
-                router.refresh();
                 onClose();
-            }, 800);
+            }, 2000);
             return () => clearTimeout(timer);
         }
-    }, [status, router, onClose]);
+    }, [status, onClose]);
 
     return (
-        /** * Lớp bọc ngoài cùng (Overlay):
-         * fixed + inset-0 + z-[9999] đảm bảo thoát khỏi mọi flex/relative của trang Login.
-         * backdrop-blur-sm giúp che mờ phần nội dung "độc quyền" phía sau.
-         */
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-            {/* Backdrop: Click vào vùng trống để đóng */}
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
                 onClick={onClose}
             />
 
-            {/* Modal Box: z-relative để nổi trên backdrop */}
             <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-5 w-full max-w-[320px] text-center transform transition-all animate-in zoom-in-95 duration-200">
-
-                {/* Close Button */}
                 <button
                     onClick={onClose}
                     className="absolute top-2 right-2 p-1.5 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -60,9 +87,7 @@ export function QRLoginModal({ onClose }: { onClose: () => void }) {
                     Dùng thiết bị đã đăng nhập để quét mã
                 </p>
 
-                {/* QR Display Area */}
                 <div className="flex flex-col justify-center items-center min-h-[200px] bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
-
                     {status === 'CREATING' && (
                         <div className="flex flex-col items-center gap-3">
                             <Loader2 className="animate-spin w-10 h-10 text-blue-500" />
@@ -70,10 +95,10 @@ export function QRLoginModal({ onClose }: { onClose: () => void }) {
                         </div>
                     )}
 
-                    {status === 'PENDING' && token && (
+                    {status === 'PENDING' && encodedToken && (
                         <div className="bg-white p-3 rounded-2xl shadow-sm">
                             <QRCodeCanvas
-                                value={`${window.location.origin}/qr-confirm?token=${token}`}
+                                value={`${window.location.origin}/qr-confirm?d=${encodedToken}`}
                                 size={220}
                                 level="H"
                                 includeMargin={false}
@@ -85,25 +110,27 @@ export function QRLoginModal({ onClose }: { onClose: () => void }) {
                     {status === 'SUCCESS' && (
                         <div className="flex flex-col items-center gap-3 text-green-500 animate-in fade-in zoom-in">
                             <CheckCircle className="w-16 h-16" />
-                            <p className="font-bold text-lg">Thành công!</p>
+                            <p className="font-bold text-lg">Xác thực thành công!</p>
+                            <p className="text-xs text-gray-400 italic">Đang đồng bộ tài khoản...</p>
                         </div>
                     )}
 
                     {(status === 'EXPIRED' || status === 'ERROR') && (
                         <div className="flex flex-col items-center gap-4 p-4 text-orange-500">
                             <XCircle className="w-14 h-14" />
-                            <p className="font-semibold">
-                                {status === 'EXPIRED' ? 'QR đã hết hạn' : 'Lỗi kết nối'}
+                            <p className="font-semibold text-center">
+                                {status === 'EXPIRED' ? 'QR đã hết hạn' : 'Lỗi kết nối server'}
                             </p>
                             <button
                                 onClick={() => {
                                     reset();
+                                    setEncodedToken(null);
                                     createQR();
                                 }}
                                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30"
                             >
                                 <RefreshCw className="w-4 h-4" />
-                                Thử lại ngay
+                                Làm mới mã
                             </button>
                         </div>
                     )}

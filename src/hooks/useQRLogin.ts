@@ -1,3 +1,4 @@
+// src/hooks/useQRLogin.ts
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -11,10 +12,8 @@ export function useQRLogin() {
 
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Create QR
     const createQR = useCallback(async () => {
         setStatus('CREATING');
-
         try {
             const res = await fetch('/api/qr/create', { method: 'POST' });
             const data = await res.json();
@@ -30,7 +29,6 @@ export function useQRLogin() {
         }
     }, []);
 
-    // Polling
     const startPolling = useCallback(() => {
         if (!token) return;
 
@@ -39,9 +37,13 @@ export function useQRLogin() {
                 const res = await fetch(`/api/qr/status?token=${token}`);
                 const data = await res.json();
 
-                if (data.status === 'SUCCESS') {
-                    setStatus('SUCCESS');
+                if (data.status === 'SUCCESS' && data.login_url) {
                     clearInterval(intervalRef.current!);
+                    setStatus('SUCCESS');
+
+                    // QUAN TRỌNG: Sử dụng window.location.href thay vì assign
+                    // Để đảm bảo browser xử lý hash fragment đúng cách
+                    window.location.href = data.login_url;
                 }
 
                 if (data.status === 'EXPIRED') {
@@ -49,15 +51,19 @@ export function useQRLogin() {
                     clearInterval(intervalRef.current!);
                 }
 
+                if (data.status === 'INVALID') {
+                    setStatus('ERROR');
+                    clearInterval(intervalRef.current!);
+                }
+
             } catch (e) {
                 console.error('QR POLL ERROR:', e);
                 setStatus('ERROR');
-                clearInterval(intervalRef.current!);
+                if (intervalRef.current) clearInterval(intervalRef.current);
             }
-        }, 1000);
+        }, 1500);
     }, [token]);
 
-    // Auto start polling
     useEffect(() => {
         if (status === 'PENDING') {
             startPolling();
@@ -68,8 +74,8 @@ export function useQRLogin() {
         };
     }, [status, startPolling]);
 
-    // Reset
     const reset = useCallback(() => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
         setToken(null);
         setStatus('IDLE');
         setExpiresAt(null);

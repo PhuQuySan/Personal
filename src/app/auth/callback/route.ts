@@ -1,61 +1,35 @@
-// src/app/auth/callback/route.ts
+// 📁 src/app/auth/callback/route.ts
 import { createServer } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
-    console.log('🔐 [Auth Callback] Bắt đầu xử lý callback');
-
     const requestUrl = new URL(request.url);
     const code = requestUrl.searchParams.get('code');
-    const error = requestUrl.searchParams.get('error');
-    const errorDescription = requestUrl.searchParams.get('error_description');
+    const origin = requestUrl.origin;
 
-    console.log('📧 [Auth Callback] Code:', code ? 'Có' : 'Không');
-    console.log('❌ [Auth Callback] Error:', error);
-    console.log('📝 [Auth Callback] Error Description:', errorDescription);
+    // Log để debug (Xóa khi deploy)
+    console.log('📧 [Callback] Code nhận được:', code ? 'CÓ' : 'KHÔNG');
 
-    // URL redirect mặc định
-    const redirectUrl = new URL('/', request.url);
-
-    // Nếu có lỗi từ Supabase
-    if (error) {
-        console.error('❌ [Auth Callback] Lỗi từ Supabase:', errorDescription);
-        redirectUrl.pathname = '/login';
-        redirectUrl.searchParams.set('error', errorDescription || 'Xác thực thất bại');
-        return NextResponse.redirect(redirectUrl);
-    }
-
-    // Nếu không có code
-    if (!code) {
-        console.error('❌ [Auth Callback] Không có code xác thực');
-        redirectUrl.pathname = '/login';
-        redirectUrl.searchParams.set('error', 'Thiếu mã xác thực');
-        return NextResponse.redirect(redirectUrl);
-    }
-
-    try {
+    if (code) {
         const supabase = await createServer();
 
-        console.log('🔄 [Auth Callback] Đang trao đổi code cho session...');
+        // Trao đổi code lấy session - Bước này ghi đè Cookies vào trình duyệt
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
-        if (exchangeError) {
-            console.error('❌ [Auth Callback] Lỗi trao đổi session:', exchangeError.message);
-            redirectUrl.pathname = '/login';
-            redirectUrl.searchParams.set('error', exchangeError.message);
-            return NextResponse.redirect(redirectUrl);
+        if (!exchangeError) {
+            // Đăng nhập thành công -> Điều hướng về Dashboard sạch sẽ
+            const response = NextResponse.redirect(`${origin}/dashboard`);
+
+            // Ép làm mới cache để Navigation nhận diện User ngay lập tức
+            response.headers.set('Cache-Control', 'no-store, max-age=0');
+            return response;
         }
 
-        console.log('✅ [Auth Callback] Xác thực thành công, chuyển hướng đến dashboard');
-
-        // Chuyển hướng đến dashboard sau khi xác thực thành công
-        redirectUrl.pathname = '/dashboard';
-        return NextResponse.redirect(redirectUrl);
-
-    } catch (error) {
-        console.error('❌ [Auth Callback] Lỗi exception:', error);
-        redirectUrl.pathname = '/login';
-        redirectUrl.searchParams.set('error', 'Đã xảy ra lỗi không mong muốn');
-        return NextResponse.redirect(redirectUrl);
+        console.error('❌ [Callback] Lỗi đổi code:', exchangeError.message);
     }
+
+    // Nếu không có code hoặc lỗi: Về login và ẩn thông tin nhạy cảm
+    const errorUrl = new URL('/login', origin);
+    errorUrl.searchParams.set('error', 'Authentication failed');
+    return NextResponse.redirect(errorUrl);
 }

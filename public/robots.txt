@@ -1,0 +1,8 @@
+# public/robots.txt
+User-agent: *
+Disallow: /auth/
+Disallow: /api/
+Disallow: /qr-confirm
+Disallow: /email-verification
+
+Sitemap: https://phuquy.online/sitemap.xml

@@ -41,7 +41,6 @@ export function QRLoginModal({ onClose }: { onClose: () => void }) {
         }
     }, [token, status]);
 
-    // Lắng nghe Auth State Change
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
@@ -55,7 +54,6 @@ export function QRLoginModal({ onClose }: { onClose: () => void }) {
         return () => subscription.unsubscribe();
     }, [supabase, router, onClose]);
 
-    // UI phản hồi
     useEffect(() => {
         if (status === 'SUCCESS') {
             const timer = setTimeout(() => {
@@ -64,6 +62,14 @@ export function QRLoginModal({ onClose }: { onClose: () => void }) {
             return () => clearTimeout(timer);
         }
     }, [status, onClose]);
+
+    // ✅ TỰ ĐỘNG NHẬN DIỆN DOMAIN
+    const getQRUrl = () => {
+        if (typeof window === 'undefined' || !encodedToken) return '';
+
+        // Sử dụng origin hiện tại của browser
+        return `${window.location.origin}/qr-confirm?d=${encodedToken}`;
+    };
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -98,7 +104,7 @@ export function QRLoginModal({ onClose }: { onClose: () => void }) {
                     {status === 'PENDING' && encodedToken && (
                         <div className="bg-white p-3 rounded-2xl shadow-sm">
                             <QRCodeCanvas
-                                value={`${window.location.origin}/qr-confirm?d=${encodedToken}`}
+                                value={getQRUrl()}
                                 size={220}
                                 level="H"
                                 includeMargin={false}

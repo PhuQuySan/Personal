@@ -34,14 +34,20 @@ export async function GET(req: Request) {
 
             const email = userRes.user.email;
 
-            // QUAN TRỌNG: Redirect đến /auth/magic
-            const origin = req.headers.get('origin') || 'http://localhost:3000';
-            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || origin;
+            // ✅ TỰ ĐỘNG NHẬN DIỆN DOMAIN
+            const requestUrl = new URL(req.url);
+            const protocol = requestUrl.protocol; // http: hoặc https:
+            const host = req.headers.get('host'); // localhost:3000 hoặc phuquy.online
+
+            // Ưu tiên NEXT_PUBLIC_SITE_URL, fallback về origin
+            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || `${protocol}//${host}`;
             const redirectTo = `${siteUrl}/auth/magic`;
 
-            console.log('🔗 Generating Magic Link:', {
+            console.log('🔗 Magic Link Config:', {
                 email,
-                redirectTo
+                siteUrl,
+                redirectTo,
+                host
             });
 
             const { data, error } = await supabase.auth.admin.generateLink({

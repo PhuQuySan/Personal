@@ -1,5 +1,4 @@
 // src/middleware.ts
-
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
@@ -8,9 +7,11 @@ export async function middleware(request: NextRequest) {
         request: { headers: request.headers },
     });
 
-    // Add performance and caching headers
+    // Add security headers
     response.headers.set('X-DNS-Prefetch-Control', 'on');
     response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
 
     // Cache static assets
     if (request.nextUrl.pathname.startsWith('/_next/static/')) {
@@ -20,7 +21,6 @@ export async function middleware(request: NextRequest) {
         );
     }
 
-    // Cache images
     if (request.nextUrl.pathname.startsWith('/_next/image/')) {
         response.headers.set(
             'Cache-Control',
@@ -46,22 +46,31 @@ export async function middleware(request: NextRequest) {
         }
     );
 
-    // CHỈ GỌI getUser() - Vừa để refresh session, vừa để lấy user bảo mật nhất
     const { data: { user: supabaseUser } } = await supabase.auth.getUser();
-
-    // Kiểm tra session demo (Elite Leader AL)
     const isDemoSession = request.cookies.get('demo-auth-session')?.value === 'demo-user-al-elite-leader-uid';
     const isLoggedIn = !!supabaseUser || isDemoSession;
     const pathname = request.nextUrl.pathname;
 
-    // Logic chuyển hướng (Redirect logic)
+    // Cho phép /auth/magic không cần auth
+    if (pathname === '/auth/magic') {
+        return response;
+    }
+
+    // Bảo vệ route QR Confirm
+    if (pathname === '/qr-confirm') {
+        const hasEncodedData = request.nextUrl.searchParams.has('d');
+        if (!hasEncodedData) {
+            return NextResponse.redirect(new URL('/login', request.url));
+        }
+    }
+
+    // Redirect logic
     if (!isLoggedIn && pathname.startsWith('/dashboard')) {
         const loginUrl = new URL('/login', request.url);
         loginUrl.searchParams.set('redirected_from', pathname);
         return NextResponse.redirect(loginUrl);
     }
 
-    // Redirect từ email-verification nếu đã verify
     if (pathname === '/email-verification' && isLoggedIn) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
     }
@@ -75,18 +84,14 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        /*
-         * Chỉ chạy Middleware trên các trang cụ thể để tối ưu tốc độ load:
-         * 1. Dashboard & Admin
-         * 2. Login & Signup
-         * 3. Email Verification
-         * 4. Static assets & images (for caching headers)
-         */
         '/dashboard/:path*',
         '/login',
         '/signup',
         '/email-verification',
+        '/qr-confirm',
+        '/auth/magic', // ← THÊM DÒNG NÀY
         '/_next/static/:path*',
         '/_next/image/:path*',
     ],
 };
+

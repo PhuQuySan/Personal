@@ -1,16 +1,19 @@
 // 📁 src/app/api/qr/create/route.ts
 import { NextResponse } from 'next/server';
-import { createServer } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
+
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY! // 🔥 service role = bypass RLS
+);
 
 export async function POST() {
     try {
-        const supabase = await createServer();
         const token = randomUUID();
-
         const expiresAt = new Date(Date.now() + 60 * 1000); // 60s
 
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
             .from('qr_login_sessions')
             .insert({
                 token,

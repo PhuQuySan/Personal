@@ -7,6 +7,13 @@ export async function middleware(request: NextRequest) {
         request: { headers: request.headers },
     });
 
+    // ✅ SECURITY HEADERS cho /auth/magic
+    if (request.nextUrl.pathname === '/auth/magic') {
+        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+        response.headers.set('Referrer-Policy', 'no-referrer');
+    }
+
     // Add security headers
     response.headers.set('X-DNS-Prefetch-Control', 'on');
     response.headers.set('X-Content-Type-Options', 'nosniff');
@@ -89,9 +96,8 @@ export const config = {
         '/signup',
         '/email-verification',
         '/qr-confirm',
-        '/auth/magic', // ← THÊM DÒNG NÀY
+        '/auth/magic',
         '/_next/static/:path*',
         '/_next/image/:path*',
     ],
 };
-

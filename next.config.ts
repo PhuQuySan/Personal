@@ -1,10 +1,9 @@
-// next.config.ts
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
     reactStrictMode: true,
 
-    // Image configuration
+    // ✅ Image configuration (Supabase storage)
     images: {
         remotePatterns: [
             {
@@ -19,14 +18,14 @@ const nextConfig: NextConfig = {
         minimumCacheTTL: 60,
     },
 
-    // Compiler optimizations
+    // ✅ Compiler optimizations
     compiler: {
         removeConsole: process.env.NODE_ENV === 'production'
             ? { exclude: ['error', 'warn'] }
             : false,
     },
 
-    // Experimental features (Next 16 compatible)
+    // ✅ Experimental features (Next 16 compatible)
     experimental: {
         optimizePackageImports: [
             'lucide-react',
@@ -37,7 +36,7 @@ const nextConfig: NextConfig = {
         optimizeCss: true,
     },
 
-    // Turbopack config (NEW SYSTEM)
+    // ✅ Turbopack config (NEW SYSTEM)
     turbopack: {
         rules: {
             '*.svg': {
@@ -45,12 +44,12 @@ const nextConfig: NextConfig = {
                 as: '*.js',
             },
         },
-        // root: __dirname, // dùng nếu monorepo
     },
 
-    // Headers for caching and security
+    // ✅ Headers for caching and security
     async headers() {
         return [
+            // 1. Global Security Headers
             {
                 source: '/:path*',
                 headers: [
@@ -61,6 +60,21 @@ const nextConfig: NextConfig = {
                     { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
                 ],
             },
+            // 2. Specific Security Headers for Magic Link (Added here)
+            {
+                source: '/auth/magic',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 'no-store, no-cache, must-revalidate, private',
+                    },
+                    {
+                        key: 'X-Robots-Tag',
+                        value: 'noindex, nofollow',
+                    },
+                ],
+            },
+            // 3. Static Assets Caching
             {
                 source: '/static/:path*',
                 headers: [
@@ -70,6 +84,7 @@ const nextConfig: NextConfig = {
                     },
                 ],
             },
+            // 4. Next Image Optimization Caching
             {
                 source: '/_next/image/:path*',
                 headers: [

@@ -9,6 +9,8 @@ import Link from "next/link";
 import { ActionResult } from '@/types';
 import { Loader2 } from 'lucide-react';
 import toast from "react-hot-toast";
+import Image from "next/image"
+
 
 
 // Giả định các kiểu dữ liệu đã được import từ types/index.ts hoặc được định nghĩa ở đây
@@ -81,7 +83,16 @@ export default function DashboardClient({ initialProfile, initialLinks }: Dashbo
             {/* 1. Profile Summary */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-10">
                 <div className="flex flex-wrap items-center gap-4 sm:space-x-4">
-                    <UserIcon className="w-14 h-14 sm:w-16 sm:h-16 text-blue-600 dark:text-blue-400 p-2 bg-blue-50 dark:bg-gray-700 rounded-full flex-shrink-0" />
+                    {/* Avatar */}
+                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-blue-50 dark:bg-gray-700 flex-shrink-0">
+                        <Image
+                            src={profile.avatar_url ?? "/avatar-default.png"}
+                            alt={profile.full_name ?? "User"}
+                            fill
+                            sizes="64px"
+                            className="object-cover"
+                        />
+                    </div>
 
                     <div className="min-w-0">
                         <h1 className="text-fluid font-extrabold text-gray-900 dark:text-white leading-tight break-words">

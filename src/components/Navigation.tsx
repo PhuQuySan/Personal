@@ -1,11 +1,11 @@
-// src/components/Navigation.tsx (v4.0 - Glass Morphism + Zero Lag)
+// src/components/Navigation.tsx (v5.0 - Fixed Auth Update + Dashboard Dropdown)
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
 import {
     LogIn, LayoutDashboard, BookOpen, LogOut, Shield, Lock, Zap,
-    User, ChevronDown, Menu, X, Home, Moon, Sun, Columns, Rows
+    User, ChevronDown, Menu, X, Home, Moon, Sun, Columns, Rows, FileText
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo, useCallback, useTransition } from 'react';
@@ -26,28 +26,30 @@ export const Navigation: React.FC = () => {
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(() => {
-        // ✅ Safe initial value - matches server
-        if (typeof window === 'undefined') return false;
-        return false; // Will be updated in useEffect
-    });
+    const [isDarkMode, setIsDarkMode] = useState(false);
     const [layoutMode, setLayoutMode] = useState<LayoutMode>('vertical');
     const [isMounted, setIsMounted] = useState(false);
 
     const isAuthenticated = !!userProfile;
     const userRole = userProfile?.user_role || 'normal';
 
-    // Memoize navigation links
+    // Memoize navigation links (public only)
     const navLinks: NavLink[] = useMemo(() => [
         { name: 'Trang Chủ', href: '/', icon: <Home className="w-5 h-5" /> },
         { name: 'Thư Viện Blog', href: '/blog', icon: <BookOpen className="w-5 h-5" /> },
+    ], []);
+
+    // Dashboard links - shown in dropdown for horizontal, sidebar for vertical
+    const dashboardLinks: NavLink[] = useMemo(() => [
         {
-            name: 'Dashboard', href: '/dashboard',
+            name: 'Dashboard',
+            href: '/dashboard',
             icon: <LayoutDashboard className="w-5 h-5" />,
             requiredRoles: ['demo', 'normal', 'elite', 'super_elite'],
         },
         {
-            name: 'Tệp & Bí mật', href: '/dashboard/files',
+            name: 'Tệp & Bí mật',
+            href: '/dashboard/files',
             icon: <Lock className="w-5 h-5" />,
             requiredRoles: ['elite', 'super_elite'],
         },
@@ -55,7 +57,8 @@ export const Navigation: React.FC = () => {
 
     const adminLinks: NavLink[] = useMemo(() => [
         {
-            name: 'Admin Panel', href: '/dashboard/admin',
+            name: 'Admin Panel',
+            href: '/dashboard/admin',
             icon: <Shield className="w-5 h-5" />,
             requiredRoles: ['super_elite']
         },
@@ -65,14 +68,19 @@ export const Navigation: React.FC = () => {
     const criticalRoutes = useMemo(() => ['/', '/blog', '/login'], []);
     usePrefetchCritical(criticalRoutes);
 
-    // ✅ USER ROUTES - Prefetch based on auth
+    // ✅ USER ROUTES - Only prefetch routes that exist
     const userRoutes = useMemo(() => {
         const routes: string[] = [];
         if (isAuthenticated) {
+            // Only add dashboard route (base route)
             routes.push('/dashboard');
+
+            // Only add files if user has access
             if (userRole === 'elite' || userRole === 'super_elite') {
                 routes.push('/dashboard/files');
             }
+
+            // Only add admin if super_elite
             if (userRole === 'super_elite') {
                 routes.push('/dashboard/admin');
             }
@@ -88,30 +96,13 @@ export const Navigation: React.FC = () => {
         priority: 'high',
     });
 
-    // ✅ INSTANT MOUNT - No loading state needed
+    // ✅ INSTANT MOUNT
     useEffect(() => {
-        // Set mounted first
         setIsMounted(true);
-
-        // Then update theme from actual DOM state (already set by inline script)
         const isDark = document.documentElement.classList.contains('dark');
         setIsDarkMode(isDark);
-
-        // Initialize layout
         const savedLayout = localStorage.getItem('nav-layout') as LayoutMode;
         setLayoutMode(savedLayout || 'vertical');
-    }, []);
-
-    // ✅ Auth state changes - only refetch, no re-render needed
-    useEffect(() => {
-        const supabase = createClient();
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-            if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-                // Data will update automatically via cache
-                console.log('🔐 Auth changed:', event);
-            }
-        });
-        return () => subscription.unsubscribe();
     }, []);
 
     // ✅ INSTANT SIGN OUT
@@ -126,12 +117,10 @@ export const Navigation: React.FC = () => {
         });
     }, [router]);
 
-    // ✅ INSTANT THEME TOGGLE - No lag
+    // ✅ INSTANT THEME TOGGLE
     const toggleDarkMode = useCallback(() => {
         const newMode = !isDarkMode;
         setIsDarkMode(newMode);
-
-        // Update DOM instantly
         document.documentElement.classList.toggle('dark', newMode);
         localStorage.setItem('theme', newMode ? 'dark' : 'light');
     }, [isDarkMode]);
@@ -167,18 +156,13 @@ export const Navigation: React.FC = () => {
                 }
                 `}
             >
-                {/* Glass morphism background */}
                 <div className={`
                     absolute inset-0 rounded-xl backdrop-blur-sm
                     ${isActive ? 'bg-white/40 dark:bg-white/5' : 'bg-transparent group-hover:bg-white/30 dark:group-hover:bg-white/5'}
                     transition-colors duration-200
                 `} />
-
-                <span className="relative z-10">
-                    {link.icon}
-                </span>
+                <span className="relative z-10">{link.icon}</span>
                 <span className="relative z-10 font-medium">{link.name}</span>
-
                 {isActive && (
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-r-full" />
                 )}
@@ -186,16 +170,20 @@ export const Navigation: React.FC = () => {
         );
     }, [pathname, userRole, prefetchOnHover]);
 
-    // ✅ NO LOADING STATE - Prevent hydration mismatch
-    if (!isMounted) {
-        // Return minimal structure that matches initial render
-        return null;
-    }
+    if (!isMounted) return null;
 
-    const allLinks = [...navLinks, ...adminLinks];
+    const allVerticalLinks = [...navLinks, ...dashboardLinks, ...adminLinks];
 
     // ================== HORIZONTAL LAYOUT ==================
     if (layoutMode === 'horizontal') {
+        // Filter dashboard links user can see
+        const visibleDashboardLinks = dashboardLinks.filter(link =>
+            !link.requiredRoles || link.requiredRoles.includes(userRole)
+        );
+        const visibleAdminLinks = adminLinks.filter(link =>
+            !link.requiredRoles || link.requiredRoles.includes(userRole)
+        );
+
         return (
             <>
                 <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 shadow-sm">
@@ -220,9 +208,9 @@ export const Navigation: React.FC = () => {
                                 </Link>
                             </div>
 
-                            {/* Desktop Nav */}
+                            {/* Desktop Nav - Public links only */}
                             <nav className="hidden lg:flex items-center gap-2">
-                                {allLinks.map((link) => (
+                                {navLinks.map((link) => (
                                     <NavItem key={link.href} link={link} />
                                 ))}
                             </nav>
@@ -285,17 +273,36 @@ export const Navigation: React.FC = () => {
                                                             {isStale && <span className="text-yellow-500 ml-2">(updating...)</span>}
                                                         </p>
                                                     </div>
+
+                                                    {/* Dashboard Links in Dropdown */}
                                                     <div className="py-2">
-                                                        <Link
-                                                            href="/dashboard"
-                                                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-all"
-                                                            onClick={() => setIsDropdownOpen(false)}
-                                                            onMouseEnter={() => prefetchOnHover('/dashboard')}
-                                                        >
-                                                            <LayoutDashboard className="w-4 h-4" />
-                                                            Dashboard
-                                                        </Link>
+                                                        {visibleDashboardLinks.map((link) => (
+                                                            <Link
+                                                                key={link.href}
+                                                                href={link.href}
+                                                                className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-all"
+                                                                onClick={() => setIsDropdownOpen(false)}
+                                                                onMouseEnter={() => prefetchOnHover(link.href)}
+                                                            >
+                                                                {link.icon}
+                                                                {link.name}
+                                                            </Link>
+                                                        ))}
+
+                                                        {visibleAdminLinks.map((link) => (
+                                                            <Link
+                                                                key={link.href}
+                                                                href={link.href}
+                                                                className="flex items-center gap-3 px-4 py-2 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-all"
+                                                                onClick={() => setIsDropdownOpen(false)}
+                                                                onMouseEnter={() => prefetchOnHover(link.href)}
+                                                            >
+                                                                {link.icon}
+                                                                {link.name}
+                                                            </Link>
+                                                        ))}
                                                     </div>
+
                                                     <div className="border-t border-gray-200/50 dark:border-gray-700/50 pt-2">
                                                         <button
                                                             onClick={() => void handleSignOut()}
@@ -319,7 +326,7 @@ export const Navigation: React.FC = () => {
                 <MobileSidebar
                     isSidebarOpen={isSidebarOpen}
                     closeSidebar={closeSidebar}
-                    allLinks={allLinks}
+                    allLinks={allVerticalLinks}
                     NavItem={NavItem}
                     isDarkMode={isDarkMode}
                     toggleDarkMode={toggleDarkMode}
@@ -337,9 +344,7 @@ export const Navigation: React.FC = () => {
     // ================== VERTICAL LAYOUT ==================
     return (
         <>
-            {/* Vertical Sidebar - Glass Morphism */}
             <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-800/50 flex-col z-40 shadow-lg">
-                {/* Logo */}
                 <div className="p-6 border-b border-gray-200/50 dark:border-gray-800/50">
                     <Link href="/" className="flex items-center gap-3 group" onMouseEnter={() => prefetchOnHover('/')}>
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-500 rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-blue-500/50 transition-shadow">
@@ -351,14 +356,12 @@ export const Navigation: React.FC = () => {
                     </Link>
                 </div>
 
-                {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
-                    {allLinks.map((link) => (
+                    {allVerticalLinks.map((link) => (
                         <NavItem key={link.href} link={link} />
                     ))}
                 </nav>
 
-                {/* Bottom Actions */}
                 <div className="p-4 border-t border-gray-200/50 dark:border-gray-800/50 space-y-3">
                     <button
                         onClick={toggleLayoutMode}
@@ -376,7 +379,6 @@ export const Navigation: React.FC = () => {
                         <span className="text-sm font-medium">{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
                     </button>
 
-                    {/* User Section */}
                     {!isAuthenticated ? (
                         <Link
                             href="/login"
@@ -414,7 +416,6 @@ export const Navigation: React.FC = () => {
                 </div>
             </aside>
 
-            {/* Mobile Header */}
             <header className="lg:hidden sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 shadow-sm">
                 <div className="px-4 h-16 flex items-center justify-between">
                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 rounded-lg hover:bg-gray-100/50 dark:hover:bg-gray-800/50 transition-all">
@@ -439,7 +440,7 @@ export const Navigation: React.FC = () => {
             <MobileSidebar
                 isSidebarOpen={isSidebarOpen}
                 closeSidebar={closeSidebar}
-                allLinks={allLinks}
+                allLinks={allVerticalLinks}
                 NavItem={NavItem}
                 isDarkMode={isDarkMode}
                 toggleDarkMode={toggleDarkMode}
@@ -454,7 +455,6 @@ export const Navigation: React.FC = () => {
     );
 };
 
-// Mobile Sidebar with Glass Morphism
 const MobileSidebar = ({ isSidebarOpen, closeSidebar, allLinks, NavItem, isDarkMode, toggleDarkMode, isAuthenticated, userProfile, userRole, handleSignOut, prefetchOnHover, isPending }: any) => (
     <div className={`lg:hidden fixed inset-0 z-50 transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeSidebar} />

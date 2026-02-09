@@ -161,7 +161,7 @@ export default function AdminPanelClient({ initialPosts, userRole, userId }: Ext
             }
         } catch (error) {
           //  console.error('Lỗi khi lưu bài viết:', error);
-            return { success: false, error: 'Có lỗi xảy ra khi lưu bài viết' };
+            return { success: false, error: 'Có lỗi xảy ra khi i viết' };
         } finally {
             setIsActionPending(false);
         }

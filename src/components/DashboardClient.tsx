@@ -2,9 +2,9 @@
 'use client';
 
 import { useState } from 'react';
-import LinkForm from '@/components/LinkForm';
+import LinkForm from '@/components/Post/LinkForm';
 import { upsertUserLink } from '@/app/auth/link.actions';
-import { User, Zap, FileText, Settings, Link as LinkIcon, ExternalLink, Edit, Copy, Check  , Trash2, User as UserIcon } from 'lucide-react';
+import { User, Zap, FileText, Settings, Link as LinkIcon, ExternalLink, Edit, Copy, Check, Trash2, User as UserIcon, Bookmark } from 'lucide-react';
 import Link from "next/link";
 import { ActionResult } from '@/types';
 import { Loader2 } from 'lucide-react';
@@ -221,12 +221,19 @@ export default function DashboardClient({ initialProfile, initialLinks }: Dashbo
                         </Link>
                     )}
 
-                    {/* Các chức năng khác */}
-                    <div className="group p-6 bg-gray-50 dark:bg-gray-750 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 text-center">
-                        <Settings className="w-8 h-8 text-gray-500 dark:text-gray-400 mb-3 mx-auto" />
-                        <h3 className="font-bold text-lg text-gray-700 dark:text-gray-300">Cài đặt</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Nâng cấp/chỉnh sửa hồ sơ.</p>
-                    </div>
+                    {/* Cài đặt */}
+                    <Link href="/dashboard/settings" className="group p-6 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl shadow-md hover:shadow-lg transition duration-200 border border-indigo-200 dark:border-indigo-700">
+                        <Settings className="w-8 h-8 text-indigo-600 dark:text-indigo-400 mb-3 group-hover:scale-110 transition" />
+                        <h3 className="font-bold text-lg text-indigo-700 dark:text-white">Cài đặt</h3>
+                        <p className="text-sm text-indigo-600 dark:text-indigo-400">Nâng cấp/chỉnh sửa hồ sơ.</p>
+                    </Link>
+
+                    {/* Bài viết đã lưu */}
+                    <Link href="/dashboard/saved-posts" className="group p-6 bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-xl shadow-md hover:shadow-lg transition duration-200 border border-pink-200 dark:border-pink-700">
+                        <Bookmark className="w-8 h-8 text-pink-600 dark:text-pink-400 mb-3 group-hover:scale-110 transition" />
+                        <h3 className="font-bold text-lg text-pink-700 dark:text-white">Bài viết đã lưu</h3>
+                        <p className="text-sm text-pink-600 dark:text-pink-400">Xem các bài viết yêu thích.</p>
+                    </Link>
                 </div>
             </div>
         </div>

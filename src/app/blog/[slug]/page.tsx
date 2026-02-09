@@ -1,11 +1,12 @@
 // src/app/blog/[slug]/page.tsx
 import { createServer } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
-import { Calendar, User, Lock, Shield, Globe, Clock, ArrowLeft, Share2, Bookmark, Tag } from 'lucide-react';
+import { Calendar, User, Lock, Shield, Globe, Clock, ArrowLeft, Share2 } from 'lucide-react';
 import Link from "next/link";
 import PostImage from '@/components/PostImage';
-import ShareButtons from '@/components/ShareButtons';
+import ShareButtons from '@/components/Post/SAVEPOST/ShareButtons';
 import RelatedPosts from '@/components/RelatedPosts';
+import SaveButton from '@/components/Post/SAVEPOST/SaveButton';
 import type { ProfileData } from '@/types';
 
 interface PostPageProps {
@@ -15,6 +16,7 @@ interface PostPageProps {
 }
 
 interface Post {
+    id: number;
     title: string;
     content: string;
     tag: string | null;
@@ -87,10 +89,10 @@ export default async function PostPage({ params }: PostPageProps) {
     const { data: { user } } = await supabase.auth.getUser();
     const userRole = user?.email?.includes('@admin.com') ? 'super_elite' : (user ? 'elite' : 'normal');
 
-    // Fetch bài viết
+    // Fetch bài viết với id
     const { data: post, error } = await supabase
         .from('posts')
-        .select('title, content, tag, created_at, access_level, featured_image, summary, profiles(full_name, avatar_url)')
+        .select('id, title, content, tag, created_at, access_level, featured_image, summary, profiles(full_name, avatar_url)')
         .eq('slug', slug)
         .single();
 
@@ -182,7 +184,7 @@ export default async function PostPage({ params }: PostPageProps) {
                     <div className="flex items-center gap-3 mb-4">
                         {post.tag && (
                             <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-500/90 backdrop-blur-sm text-white rounded-lg text-sm font-semibold">
-                                <Tag className="w-3.5 h-3.5" />
+                                <Share2 className="w-3.5 h-3.5" />
                                 {post.tag}
                             </span>
                         )}
@@ -252,11 +254,7 @@ export default async function PostPage({ params }: PostPageProps) {
                 {/* Action Buttons */}
                 <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
                     <ShareButtons title={post.title} />
-
-                    <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-700 dark:text-gray-300 font-medium">
-                        <Bookmark className="w-4 h-4" />
-                        Lưu bài viết
-                    </button>
+                    <SaveButton postId={post.id} />
                 </div>
 
                 {/* Article Content */}

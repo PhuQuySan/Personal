@@ -1,7 +1,8 @@
-// src/hooks/useCachedData.ts (v3.0 - Ultra Optimized)
+// src/hooks/useCachedData.ts (v4.0 - Fixed Auth Invalidation)
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
 interface CacheEntry<T> {
     data: T;
@@ -12,22 +13,20 @@ interface CacheEntry<T> {
 interface CacheConfig {
     ttl?: number;
     staleWhileRevalidate?: boolean;
-    aggressive?: boolean; // Serve stale data immediately, revalidate silently
+    aggressive?: boolean;
 }
 
-const DEFAULT_TTL = 10 * 60 * 1000; // 10 minutes (increased from 5)
+const DEFAULT_TTL = 10 * 60 * 1000; // 10 minutes
 
 class CacheManager {
     private cache = new Map<string, CacheEntry<any>>();
     private pendingRequests = new Map<string, Promise<any>>();
     private revalidating = new Set<string>();
+    private listeners = new Map<string, Set<() => void>>();
 
     get<T>(key: string): CacheEntry<T> | null {
         const entry = this.cache.get(key);
         if (!entry) return null;
-
-        // ✅ AGGRESSIVE MODE: Return stale data even if expired
-        // We'll revalidate in background
         return entry as CacheEntry<T>;
     }
 
@@ -37,6 +36,14 @@ class CacheManager {
             timestamp: Date.now(),
             expiresAt: Date.now() + ttl,
         });
+
+        // Notify listeners
+        this.notifyListeners(key);
+    }
+
+    delete(key: string): void {
+        this.cache.delete(key);
+        this.notifyListeners(key);
     }
 
     isExpired(key: string): boolean {
@@ -74,16 +81,45 @@ class CacheManager {
         }
     }
 
+    // Subscribe to cache changes
+    subscribe(key: string, callback: () => void): () => void {
+        if (!this.listeners.has(key)) {
+            this.listeners.set(key, new Set());
+        }
+        this.listeners.get(key)!.add(callback);
+
+        return () => {
+            const listeners = this.listeners.get(key);
+            if (listeners) {
+                listeners.delete(callback);
+                if (listeners.size === 0) {
+                    this.listeners.delete(key);
+                }
+            }
+        };
+    }
+
+    private notifyListeners(key: string): void {
+        const listeners = this.listeners.get(key);
+        if (listeners) {
+            listeners.forEach(callback => callback());
+        }
+    }
+
     clear(): void {
         this.cache.clear();
         this.pendingRequests.clear();
         this.revalidating.clear();
+
+        // Notify all listeners
+        this.listeners.forEach((listeners) => {
+            listeners.forEach(callback => callback());
+        });
     }
 
     clearExpired(): void {
         const now = Date.now();
         for (const [key, entry] of this.cache.entries()) {
-            // Only clear if VERY old (2x TTL)
             if (now > entry.expiresAt + DEFAULT_TTL) {
                 this.cache.delete(key);
             }
@@ -93,11 +129,11 @@ class CacheManager {
 
 const globalCache = new CacheManager();
 
-// Cleanup very old entries only
+// Cleanup very old entries
 if (typeof window !== 'undefined') {
     setInterval(() => {
         globalCache.clearExpired();
-    }, 5 * 60 * 1000); // Every 5 minutes
+    }, 5 * 60 * 1000);
 }
 
 export function useCachedData<T>(
@@ -158,7 +194,6 @@ export function useCachedData<T>(
 
     const fetchData = useCallback(async (forceRefresh = false) => {
         try {
-            // ✅ STEP 1: Check cache FIRST (even if expired in aggressive mode)
             if (!forceRefresh) {
                 const cached = globalCache.get<T>(key);
 
@@ -166,19 +201,16 @@ export function useCachedData<T>(
                     const expired = globalCache.isExpired(key);
                     const stale = globalCache.isStale(key, 60 * 1000);
 
-                    // ✅ ALWAYS serve cached data immediately
                     updateState(cached.data, expired || stale);
 
-                    // ✅ Revalidate in background if needed
                     if (aggressive && (expired || stale) && staleWhileRevalidate) {
-                        void fetchFreshData(true); // Silent revalidation
+                        void fetchFreshData(true);
                         return;
                     }
 
                     if (!expired) return;
                 }
 
-                // ✅ STEP 2: Check pending requests (dedupe)
                 const pending = globalCache.getPendingRequest<T>(key);
                 if (pending) {
                     const result = await pending;
@@ -187,7 +219,6 @@ export function useCachedData<T>(
                 }
             }
 
-            // ✅ STEP 3: Fetch fresh data
             await fetchFreshData(false);
         } catch (err) {
             if (isMountedRef.current) {
@@ -196,6 +227,18 @@ export function useCachedData<T>(
             }
         }
     }, [key, aggressive, staleWhileRevalidate, updateState, fetchFreshData]);
+
+    // ✅ Subscribe to cache changes
+    useEffect(() => {
+        const unsubscribe = globalCache.subscribe(key, () => {
+            const cached = globalCache.get<T>(key);
+            if (cached && isMountedRef.current) {
+                updateState(cached.data, false);
+            }
+        });
+
+        return unsubscribe;
+    }, [key, updateState]);
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -218,21 +261,43 @@ export function useCachedData<T>(
 }
 
 /**
- * Hook for caching user profile with ULTRA aggressive mode
+ * Hook for caching user profile with auto-invalidation on auth change
  */
 export function useCachedUserProfile() {
-    return useCachedData(
+    const { data, loading, error, isStale, refetch } = useCachedData(
         'user-profile',
         async () => {
             const { fetchUserProfile } = await import('@/lib/fetchUserProfile');
             return fetchUserProfile();
         },
         {
-            ttl: 10 * 60 * 1000, // 10 minutes
+            ttl: 10 * 60 * 1000,
             staleWhileRevalidate: true,
-            aggressive: true, // ✅ Always serve cached data instantly
+            aggressive: true,
         }
     );
+
+    // ✅ Listen to auth changes and force refetch
+    useEffect(() => {
+        const supabase = createClient();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+            if (event === 'SIGNED_IN') {
+                console.log('🔐 User signed in - clearing cache and refetching');
+                globalCache.delete('user-profile');
+                await refetch();
+            } else if (event === 'SIGNED_OUT') {
+                console.log('🔐 User signed out - clearing cache');
+                globalCache.delete('user-profile');
+                // Set null immediately
+                globalCache.set('user-profile', null);
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, [refetch]);
+
+    return { data, loading, error, isStale, refetch };
 }
 
 export function clearAllCache() {
@@ -242,9 +307,6 @@ export function clearAllCache() {
 export const cacheManager = {
     get: <T>(key: string) => globalCache.get<T>(key),
     set: <T>(key: string, data: T, ttl?: number) => globalCache.set(key, data, ttl),
+    delete: (key: string) => globalCache.delete(key),
     clear: () => globalCache.clear(),
-    clearKey: (key: string) => {
-        const entry = globalCache.get(key);
-        if (entry) globalCache.clear();
-    },
 };

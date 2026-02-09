@@ -1,4 +1,4 @@
-// src/components/InsertImageModal.tsx
+// src/components/Post/InsertImageModal.tsx
 'use client';
 
 import React, { useState } from 'react';

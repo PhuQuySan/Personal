@@ -1,4 +1,4 @@
-// src/hooks/usePrefetch.ts
+// src/hooks/usePrefetch.ts (v3.0 - Smart & Fast)
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -6,196 +6,129 @@ import { useEffect, useRef, useCallback } from 'react';
 
 interface PrefetchOptions {
     routes: string[];
-    eager?: boolean; // Prefetch immediately on mount
-    onHover?: boolean; // Prefetch on hover
-    priority?: 'high' | 'low'; // Prefetch priority
+    eager?: boolean;
+    priority?: 'critical' | 'high' | 'low';
 }
 
 /**
- * Hook để prefetch routes một cách thông minh
- * - Eager: Prefetch ngay khi component mount
- * - On Hover: Prefetch khi user hover vào link
- * - Priority: Ưu tiên prefetch các route quan trọng
+ * Ultra-optimized prefetch hook
+ * - Instant prefetch for critical routes
+ * - Smart batching for non-critical routes
+ * - No loading states (zero overhead)
  */
 export function usePrefetch({
                                 routes,
                                 eager = true,
-                                onHover = true,
-                                priority = 'low'
+                                priority = 'high',
                             }: PrefetchOptions) {
     const router = useRouter();
     const prefetchedRef = useRef(new Set<string>());
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-
-
-    // Hàm prefetch một route
+    // Prefetch single route (memoized)
     const prefetchRoute = useCallback((route: string) => {
         if (prefetchedRef.current.has(route)) return;
 
-        try {
-            router.prefetch(route);
-            prefetchedRef.current.add(route);
-        } catch (error) {
-            console.error(`Failed to prefetch route: ${route}`, error);
+        prefetchedRef.current.add(route);
+        router.prefetch(route);
+
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`⚡ Prefetched: ${route}`);
         }
     }, [router]);
 
-    // Prefetch tất cả routes
+    // Prefetch all routes immediately (for critical)
     const prefetchAll = useCallback(() => {
-        routes.forEach(route => {
-            prefetchRoute(route);
-        });
+        routes.forEach(route => prefetchRoute(route));
     }, [routes, prefetchRoute]);
 
-    // Prefetch eager (ngay lập tức)
+    // Prefetch in small batches (for low priority)
+    const prefetchInBatches = useCallback(() => {
+        let index = 0;
+        const batchSize = 2;
+
+        const processBatch = () => {
+            const batch = routes.slice(index, index + batchSize);
+            batch.forEach(route => prefetchRoute(route));
+
+            index += batchSize;
+
+            if (index < routes.length) {
+                timeoutRef.current = setTimeout(processBatch, 100);
+            }
+        };
+
+        processBatch();
+    }, [routes, prefetchRoute]);
+
+    // Eager prefetch on mount
     useEffect(() => {
         if (!eager) return;
 
-        // Cleanup timeout nếu component unmount
+        const startPrefetch = () => {
+            if (priority === 'critical') {
+                // INSTANT - No delay for critical routes
+                prefetchAll();
+            } else if (priority === 'high') {
+                // Fast prefetch with requestIdleCallback
+                if ('requestIdleCallback' in window) {
+                    requestIdleCallback(() => prefetchAll(), { timeout: 500 });
+                } else {
+                    timeoutRef.current = setTimeout(prefetchAll, 50);
+                }
+            } else {
+                // Batched prefetch for low priority
+                if ('requestIdleCallback' in window) {
+                    requestIdleCallback(() => prefetchInBatches(), { timeout: 2000 });
+                } else {
+                    timeoutRef.current = setTimeout(prefetchInBatches, 500);
+                }
+            }
+        };
+
+        startPrefetch();
+
         return () => {
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current);
             }
         };
-    }, []);
+    }, [eager, priority, prefetchAll, prefetchInBatches]);
 
-    useEffect(() => {
-        if (!eager) return;
-
-        // Sử dụng requestIdleCallback để prefetch khi browser rảnh
-        // Giúp không block UI
-        const prefetchWhenIdle = () => {
-            if ('requestIdleCallback' in window) {
-                requestIdleCallback(() => {
-                    if (priority === 'high') {
-                        // High priority: prefetch ngay lập tức
-                        prefetchAll();
-                    } else {
-                        // Low priority: delay một chút để ưu tiên render
-                        timeoutRef.current = setTimeout(prefetchAll, 100);
-                    }
-                }, { timeout: priority === 'high' ? 500 : 2000 });
-            } else {
-                // Fallback cho browsers không support requestIdleCallback
-                timeoutRef.current = setTimeout(
-                    prefetchAll,
-                    priority === 'high' ? 100 : 500
-                );
-            }
-        };
-
-        prefetchWhenIdle();
-    }, [eager, priority, prefetchAll]);
-
-    // Hàm để prefetch on hover
+    // Simple hover prefetch (no checks needed - router handles dedupe)
     const prefetchOnHover = useCallback((route: string) => {
-        if (!onHover || prefetchedRef.current.has(route)) return;
         prefetchRoute(route);
-    }, [onHover, prefetchRoute]);
+    }, [prefetchRoute]);
 
-    // Hàm để check xem route đã được prefetch chưa
     const isPrefetched = useCallback((route: string) => {
         return prefetchedRef.current.has(route);
     }, []);
 
     return {
         prefetchOnHover,
-        isPrefetched,
         prefetchRoute,
-        prefetchAll
+        isPrefetched,
     };
 }
 
 /**
- * Hook để tạo optimistic navigation với smooth transitions
- * Sử dụng View Transitions API nếu browser hỗ trợ
+ * Prefetch critical routes immediately on app start
  */
-export function useOptimisticNavigation() {
+export function usePrefetchCritical(routes: string[]) {
     const router = useRouter();
-
-    const navigateWithTransition = useCallback((href: string) => {
-        // Check nếu browser hỗ trợ View Transitions API
-        if ('startViewTransition' in document) {
-            // @ts-ignore - View Transitions API
-            document.startViewTransition(() => {
-                router.push(href);
-            });
-        } else {
-            // Fallback: navigation bình thường
-            router.push(href);
-        }
-    }, [router]);
-
-    return { navigateWithTransition };
-}
-
-/**
- * Hook để prefetch routes dựa trên viewport
- * Chỉ prefetch khi link xuất hiện trong viewport
- */
-export function useIntersectionPrefetch(routes: string[]) {
-    const router = useRouter();
-    const prefetchedRef = useRef(new Set<string>());
+    const prefetchedRef = useRef(false);
 
     useEffect(() => {
-        // Tạo IntersectionObserver
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const href = entry.target.getAttribute('href');
-                        if (href && routes.includes(href) && !prefetchedRef.current.has(href)) {
-                            router.prefetch(href);
-                            prefetchedRef.current.add(href);
-                        }
-                    }
-                });
-            },
-            {
-                rootMargin: '50px', // Prefetch 50px trước khi link vào viewport
-                threshold: 0.1,
-            }
-        );
+        if (prefetchedRef.current) return;
+        prefetchedRef.current = true;
 
-        // Observe tất cả links
-        const links = document.querySelectorAll('a[href^="/"]');
-        links.forEach(link => {
-            const href = link.getAttribute('href');
-            if (href && routes.includes(href)) {
-                observer.observe(link);
-            }
+        // Prefetch IMMEDIATELY - no waiting
+        routes.forEach(route => {
+            router.prefetch(route);
         });
 
-        // Cleanup
-        return () => {
-            observer.disconnect();
-        };
+        if (process.env.NODE_ENV === 'development') {
+            console.log('🚀 Critical routes prefetched:', routes);
+        }
     }, [routes, router]);
-}
-
-/**
- * Hook để track prefetch status
- */
-export function usePrefetchStatus() {
-    const statusRef = useRef({
-        total: 0,
-        prefetched: 0,
-        failed: 0,
-    });
-
-    const updateStatus = useCallback((type: 'prefetched' | 'failed') => {
-        statusRef.current[type]++;
-    }, []);
-
-    const getStatus = useCallback(() => {
-        return {
-            ...statusRef.current,
-            percentage: statusRef.current.total > 0
-                ? (statusRef.current.prefetched / statusRef.current.total) * 100
-                : 0,
-        };
-    }, []);
-
-    return { updateStatus, getStatus };
 }

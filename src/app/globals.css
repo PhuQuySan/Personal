@@ -52,7 +52,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  transition: background-color 300ms, color 300ms;
+  transition: background-color 200ms, color 200ms;
 }
 
 /* ============================================
@@ -63,70 +63,25 @@ body {
   animation: none !important;
 }
 
-/* ============================================
-   SMOOTH TRANSITIONS
-   ============================================ */
-* {
-  transition-property: background-color, border-color, color, fill, stroke, opacity, transform;
-  transition-duration: 200ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-.no-transition,
-.no-transition * {
-  transition: none !important;
+::-webkit-scrollbar-track {
+  background: hsl(var(--color-muted));
 }
 
-/* Custom utilities */
-@utility gpu-accelerated {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  perspective: 1000px;
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--color-muted-foreground));
+  border-radius: 4px;
 }
 
-@utility gradient-text {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background-size: 200% 200%;
-  animation: gradientShift 3s ease infinite;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-@utility text-fluid {
-  font-size: clamp(1.25rem, 2vw + 0.5rem, 2rem);
-}
-
-@utility line-clamp-2 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-@utility line-clamp-3 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-
-@utility scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--color-foreground));
 }
 
 /* Animations */
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -196,24 +151,6 @@ a:focus-visible {
   outline: 2px solid hsl(217.2 91.2% 59.8%);
   outline-offset: 2px;
   border-radius: 6px;
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: hsl(var(--color-muted));
-}
-
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--color-muted-foreground));
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--color-foreground));
 }
 
 /* Print styles */
@@ -336,12 +273,6 @@ a:focus-visible {
   }
 }
 
-/* GPU acceleration */
-.gpu-accelerated {
-  transform: translateZ(0);
-  will-change: transform;
-}
-
 /* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -365,4 +296,15 @@ a:focus-visible {
 .dark .skeleton {
   background-color: #374151;
   background-image: linear-gradient(90deg, #374151, #4b5563, #374151);
+}
+
+/* Custom layout classes */
+body.vertical-layout main {
+  margin-left: 0;
+}
+
+@media (min-width: 1024px) {
+  body.vertical-layout main {
+    margin-left: 16rem;
+  }
 }

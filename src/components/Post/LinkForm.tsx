@@ -1,4 +1,4 @@
-// src/components/LinkForm.tsx
+// src/components/Post/LinkForm.tsx
 'use client';
 
 import React, { useState, useTransition, useRef } from 'react';

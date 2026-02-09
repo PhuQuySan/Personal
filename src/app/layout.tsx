@@ -19,17 +19,7 @@ export const metadata: Metadata = {
         template: "%s | ELITE LEADER"
     },
     description: "Cổng thông tin cá nhân và blog chuyên sâu về Phát triển Mã Nguồn, Lãnh đạo cấp cao và Hệ thống Bảo mật tiên tiến.",
-    keywords: [
-        "elite leader",
-        "công nghệ",
-        "chiến lược",
-        "AI",
-        "lãnh đạo",
-        "bảo mật",
-        "nextjs",
-        "react",
-        "development"
-    ],
+    keywords: ["elite leader", "công nghệ", "chiến lược", "AI", "lãnh đạo", "bảo mật", "nextjs", "react", "development"],
     authors: [{ name: "Elite Leader" }],
     creator: "Elite Leader",
     robots: {
@@ -47,40 +37,34 @@ export default function RootLayout({
         <html lang="vi" className={inter.variable} data-scroll-behavior="smooth" suppressHydrationWarning>
         <head>
             <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-            <link rel="dns-prefetch" href="https://fptbkwagiqgwssmgkhqy.supabase.co" />
+            {/* Script chống Flash (FOUC) và ép Theme sớm nhất có thể */}
+            <script
+                dangerouslySetInnerHTML={{
+                    __html: `
+                            (function() {
+                                try {
+                                    const theme = localStorage.getItem('theme');
+                                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                                    
+                                    if (theme === 'dark' || (!theme && prefersDark)) {
+                                        document.documentElement.classList.add('dark');
+                                    } else {
+                                        document.documentElement.classList.remove('dark');
+                                    }
+                                    
+                                    // Thêm class để xử lý hiệu ứng chuyển cảnh mượt mà sau khi load
+                                    document.documentElement.classList.add('preload');
+                                } catch (e) {}
+                            })();
+                        `,
+                }}
+            />
         </head>
-        <body className={`${inter.className} antialiased`} suppressHydrationWarning>
-        <script
-            dangerouslySetInnerHTML={{
-                __html: `
-                    (function() {
-                        try {
-                            const theme = localStorage.getItem('theme');
-                            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                            
-                            if (theme === 'dark' || (!theme && prefersDark)) {
-                                document.documentElement.classList.add('dark');
-                            } else {
-                                document.documentElement.classList.remove('dark');
-                            }
-                            
-                            document.documentElement.classList.add('preload');
-                            
-                            window.addEventListener('load', function() {
-                                setTimeout(function() {
-                                    document.documentElement.classList.remove('preload');
-                                }, 100);
-                            });
-                        } catch (e) {}
-                    })();
-                `,
-            }}
-        />
+        <body className={`${inter.className} antialiased bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 transition-colors duration-300`} suppressHydrationWarning>
 
         <NavigationProvider>
             <Navigation />
-            <main className="min-h-screen">
+            <main className="min-h-screen lg:ml-0 transition-all duration-300">
                 {children}
             </main>
         </NavigationProvider>
@@ -91,45 +75,51 @@ export default function RootLayout({
             toastOptions={{
                 duration: 4000,
                 style: {
-                    background: 'hsl(var(--color-background))',
-                    color: 'hsl(var(--color-foreground))',
-                    border: '1px solid hsl(var(--color-border))',
+                    background: 'var(--toast-bg, #1e293b)',
+                    color: 'var(--toast-color, #fff)',
+                    border: '1px solid rgba(255,255,255,0.1)',
                 },
                 success: {
-                    duration: 3000,
-                    iconTheme: {
-                        primary: '#10B981',
-                        secondary: '#fff',
-                    },
+                    iconTheme: { primary: '#10B981', secondary: '#fff' },
                 },
                 error: {
-                    duration: 5000,
-                    iconTheme: {
-                        primary: '#EF4444',
-                        secondary: '#fff',
-                    },
+                    iconTheme: { primary: '#EF4444', secondary: '#fff' },
                 },
             }}
         />
 
+        {/* Cleanup preload class & Prefetching logic */}
         <script
             dangerouslySetInnerHTML={{
                 __html: `
-                    (function() {
-                        if ('requestIdleCallback' in window) {
-                            requestIdleCallback(function() {
-                                const routes = ['/', '/blog', '/dashboard', '/login', '/signup'];
-                                routes.forEach(function(route) {
-                                    const link = document.createElement('link');
-                                    link.rel = 'prefetch';
-                                    link.href = route;
-                                    link.as = 'document';
-                                    document.head.appendChild(link);
+                            (function() {
+                                // Xóa class preload sau khi đã render xong để bật lại transition
+                                window.addEventListener('load', function() {
+                                    setTimeout(function() {
+                                        document.documentElement.classList.remove('preload');
+                                    }, 100);
                                 });
-                            });
-                        }
-                    })();
-                `,
+
+                                // Tối ưu hóa tải trước các route quan trọng
+                                if ('requestIdleCallback' in window) {
+                                    requestIdleCallback(function() {
+                                        const routes = ['/', '/blog', '/dashboard', '/login'];
+                                        routes.forEach(function(route) {
+                                            const link = document.createElement('link');
+                                            link.rel = 'prefetch';
+                                            link.href = route;
+                                            document.head.appendChild(link);
+                                        });
+                                    });
+                                }
+                                
+                                // Set layout class on body
+                                const layout = localStorage.getItem('nav-layout') || 'vertical';
+                                if (layout === 'vertical') {
+                                    document.body.classList.add('vertical-layout');
+                                }
+                            })();
+                        `,
             }}
         />
         </body>

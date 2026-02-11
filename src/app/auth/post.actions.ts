@@ -21,10 +21,20 @@ export async function upsertPost(formData: FormData) {
         const slug = formData.get('slug') as string;
         const summary = formData.get('summary') as string;
         const content = formData.get('content') as string;
-        const is_published = formData.get('is_published') === 'on';
-        const access_level = formData.get('access_level') as 'public' | 'elite' | 'super_elite';
         const tag = formData.get('tag') as string;
         const featured_image = formData.get('featured_image') as string;
+        const access_level = formData.get('access_level') as 'public' | 'elite' | 'super_elite';
+
+        // 🔧 FIX: Handle is_published from both checkbox ('on') and toggle switch ('true'/'false')
+        const isPublishedValue = formData.get('is_published');
+        const is_published = isPublishedValue === 'on' || isPublishedValue === 'true';
+
+        console.log('🔍 Action Debug:', {
+            id,
+            isPublishedRaw: isPublishedValue,
+            isPublishedParsed: is_published,
+            title
+        });
 
         // Kiểm tra các trường bắt buộc
         if (!title || !slug || !content) {
@@ -40,8 +50,6 @@ export async function upsertPost(formData: FormData) {
             access_level,
             tag: tag || null,
             featured_image: featured_image || null,
-            // user_id: user.id,
-            // updated_at: new Date().toISOString()
         };
 
         const query = id
@@ -51,12 +59,15 @@ export async function upsertPost(formData: FormData) {
         const { error } = await query;
 
         if (error) {
-            console.error('Lỗi khi upsert post:', error.message);
+            console.error('❌ Lỗi khi upsert post:', error.message);
             return { error: `Lỗi khi lưu bài viết: ${error.message}` };
         }
 
+        console.log('✅ Post saved successfully:', { id, is_published, title });
+
         // Làm mới cache để hiển thị dữ liệu mới nhất
         revalidatePath('/dashboard');
+        revalidatePath('/dashboard/admin');
         revalidatePath('/blog');
         revalidatePath(`/blog/${slug}`);
 
@@ -65,6 +76,7 @@ export async function upsertPost(formData: FormData) {
             message: id ? 'Bài viết đã được cập nhật thành công!' : 'Bài viết mới đã được tạo thành công!'
         };
     } catch (e: any) {
+        console.error('❌ System error:', e);
         return { error: `Đã xảy ra lỗi hệ thống: ${e.message}` };
     }
 }
@@ -87,7 +99,7 @@ export async function deletePost(postId: number) {
             .eq('id', postId);
 
         if (error) {
-            console.error('Lỗi khi xóa bài viết:', error.message);
+            console.error('❌ Lỗi khi xóa bài viết:', error.message);
             return { error: `Lỗi khi xóa bài viết: ${error.message}` };
         }
 
@@ -98,6 +110,7 @@ export async function deletePost(postId: number) {
 
         return { success: true, message: 'Đã xóa bài viết thành công.' };
     } catch (e: any) {
+        console.error('❌ Delete error:', e);
         return { error: `Không thể xóa bài viết: ${e.message}` };
     }
 }

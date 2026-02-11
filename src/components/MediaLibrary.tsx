@@ -1,4 +1,4 @@
-// src/components/MediaLibrary.tsx (FIXED - Debug upload issues)
+// src/components/MediaLibrary.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -17,7 +17,7 @@ interface MediaItem {
     url: string;
     name: string;
     size: number;
-    uploadedAt: string; // 🌟 Changed to string for JSON compatibility
+    uploadedAt: string;
 }
 
 export default function MediaLibrary({ isOpen, onClose, onSelect, mode = 'manage' }: MediaLibraryProps) {
@@ -29,7 +29,6 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, mode = 'manage
     const [isLoading, setIsLoading] = useState(true);
     const [uploadError, setUploadError] = useState<string | null>(null);
 
-    // Load images từ localStorage
     useEffect(() => {
         if (isOpen) {
             loadImages();
@@ -81,7 +80,6 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, mode = 'manage
             const uploadPromises = Array.from(files).map(async (file) => {
                 console.log('📤 Uploading:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
-                // Validate
                 const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
                 if (!validTypes.includes(file.type)) {
                     throw new Error(`File ${file.name} không phải ảnh hợp lệ`);
@@ -125,7 +123,6 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, mode = 'manage
         try {
             console.log('🗑️ Deleting:', item.name);
 
-            // Only delete from Supabase if it's a Supabase URL
             if (item.url.includes('supabase.co')) {
                 await deleteImage(item.url);
             }

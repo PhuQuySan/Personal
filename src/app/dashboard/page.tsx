@@ -6,30 +6,26 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import DashboardClient from '@/components/DashboardClient';
 import { User } from '@supabase/supabase-js';
-
-// Định nghĩa kiểu dữ liệu (Giả định nằm trong src/types/index.ts)
-interface UserProfile {
-    full_name: string | null;
-    avatar_url: string | null;
-    user_role: 'normal' | 'elite' | 'super_elite' | 'demo';
-}
-
-interface UserLink {
-    id: number;
-    link_name: string;
-    link_url: string;
-    description: string | null;
-}
+import { UserProfile, UserLink } from '@/types';
 
 // Dữ liệu Demo
 const DEMO_PROFILE: UserProfile = {
-    full_name: "Normal User Demo", // Giả lập Normal mặc định
+    full_name: "Normal User Demo",
     avatar_url: null,
     user_role: "demo",
 };
 
 const DEMO_LINKS: UserLink[] = [
-    { id: 1, link_name: "Demo Blog Link", link_url: "/blog", description: "Xem các bài viết mới nhất." }
+    {
+        id: 1,
+        user_id: "demo-user-id",
+        link_name: "Demo Blog Link",
+        link_url: "/blog",
+        description: "Xem các bài viết mới nhất.",
+        image_url: null,
+        sort_order: 0,
+        created_at: new Date().toISOString(),
+    }
 ];
 
 /**
@@ -49,12 +45,12 @@ async function getDashboardData(user: User, isDemo: boolean) {
         .eq('id', user.id)
         .single();
 
-    // 2. Lấy Links
+    // 2. Lấy Links - FETCH TẤT CẢ CÁC FIELDS
     const { data: links } = await supabase
         .from('user_links')
-        .select('id, link_name, link_url, description')
+        .select('id, user_id, link_name, link_url, description, image_url, sort_order, created_at')
         .eq('user_id', user.id)
-        .order('id', { ascending: true });
+        .order('sort_order', { ascending: true });
 
     // Đảm bảo profile luôn có role hợp lệ
     const userProfile: UserProfile = (profile as UserProfile) || {

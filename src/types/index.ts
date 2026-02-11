@@ -82,10 +82,16 @@ export interface PostData {
 // Định nghĩa kiểu cho UserLink
 export interface UserLink {
     id: number;
+    user_id: string;
     link_name: string;
     link_url: string;
     description: string | null;
+    image_url: string | null;  // ← Thêm dòng này nếu chưa có
+    sort_order: number;
+    created_at: string;
+    updated_at?: string;
 }
+
 
 // Định nghĩa kiểu cho kết quả action
 // export type ActionResult =

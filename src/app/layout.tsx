@@ -5,6 +5,7 @@ import "./globals.css";
 import { Navigation } from "@/components/Navigation";
 import { Toaster } from 'react-hot-toast';
 import { NavigationProvider } from '@/contexts/NavigationContext';
+import { AuthErrorHandler } from '@/components/checkerror/AuthErrorHandler'; // 🔥 THÊM DÒNG NÀY
 
 const inter = Inter({
     subsets: ["latin", "vietnamese"],
@@ -37,30 +38,31 @@ export default function RootLayout({
         <html lang="vi" className={inter.variable} data-scroll-behavior="smooth" suppressHydrationWarning>
         <head>
             <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-            {/* Script chống Flash (FOUC) và ép Theme sớm nhất có thể */}
             <script
                 dangerouslySetInnerHTML={{
                     __html: `
-                            (function() {
-                                try {
-                                    const theme = localStorage.getItem('theme');
-                                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                                    
-                                    if (theme === 'dark' || (!theme && prefersDark)) {
-                                        document.documentElement.classList.add('dark');
-                                    } else {
-                                        document.documentElement.classList.remove('dark');
-                                    }
-                                    
-                                    // Thêm class để xử lý hiệu ứng chuyển cảnh mượt mà sau khi load
-                                    document.documentElement.classList.add('preload');
-                                } catch (e) {}
-                            })();
-                        `,
+                        (function() {
+                            try {
+                                const theme = localStorage.getItem('theme');
+                                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                                
+                                if (theme === 'dark' || (!theme && prefersDark)) {
+                                    document.documentElement.classList.add('dark');
+                                } else {
+                                    document.documentElement.classList.remove('dark');
+                                }
+                                
+                                document.documentElement.classList.add('preload');
+                            } catch (e) {}
+                        })();
+                    `,
                 }}
             />
         </head>
         <body className={`${inter.className} antialiased bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 transition-colors duration-300`} suppressHydrationWarning>
+
+        {/* 🔥 THÊM DÒNG NÀY */}
+        <AuthErrorHandler />
 
         <NavigationProvider>
             <Navigation />
@@ -88,38 +90,34 @@ export default function RootLayout({
             }}
         />
 
-        {/* Cleanup preload class & Prefetching logic */}
         <script
             dangerouslySetInnerHTML={{
                 __html: `
-                            (function() {
-                                // Xóa class preload sau khi đã render xong để bật lại transition
-                                window.addEventListener('load', function() {
-                                    setTimeout(function() {
-                                        document.documentElement.classList.remove('preload');
-                                    }, 100);
-                                });
+                    (function() {
+                        window.addEventListener('load', function() {
+                            setTimeout(function() {
+                                document.documentElement.classList.remove('preload');
+                            }, 100);
+                        });
 
-                                // Tối ưu hóa tải trước các route quan trọng
-                                if ('requestIdleCallback' in window) {
-                                    requestIdleCallback(function() {
-                                        const routes = ['/', '/blog', '/dashboard', '/login'];
-                                        routes.forEach(function(route) {
-                                            const link = document.createElement('link');
-                                            link.rel = 'prefetch';
-                                            link.href = route;
-                                            document.head.appendChild(link);
-                                        });
-                                    });
-                                }
-                                
-                                // Set layout class on body
-                                const layout = localStorage.getItem('nav-layout') || 'vertical';
-                                if (layout === 'vertical') {
-                                    document.body.classList.add('vertical-layout');
-                                }
-                            })();
-                        `,
+                        if ('requestIdleCallback' in window) {
+                            requestIdleCallback(function() {
+                                const routes = ['/', '/blog', '/dashboard', '/login'];
+                                routes.forEach(function(route) {
+                                    const link = document.createElement('link');
+                                    link.rel = 'prefetch';
+                                    link.href = route;
+                                    document.head.appendChild(link);
+                                });
+                            });
+                        }
+                        
+                        const layout = localStorage.getItem('nav-layout') || 'vertical';
+                        if (layout === 'vertical') {
+                            document.body.classList.add('vertical-layout');
+                        }
+                    })();
+                `,
             }}
         />
         </body>

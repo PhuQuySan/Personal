@@ -189,6 +189,8 @@ export default function HomePage() {
                 Mục tiêu là xây dựng cộng đồng vững mạnh xoay quanh <span className="font-semibold text-purple-600 dark:text-purple-400">công nghệ AI</span>,{" "}
                 <span className="font-semibold text-green-600 dark:text-green-400">lãnh đạo chiến lược</span> và{" "}
                 <span className="font-semibold text-yellow-600 dark:text-yellow-400">đổi mới sáng tạo</span>.
+                <br/>
+                <span>ver 13 </span>
               </p>
             </div>
           </div>

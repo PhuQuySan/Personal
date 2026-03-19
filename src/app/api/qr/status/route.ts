@@ -1,6 +1,6 @@
 // src/app/api/qr/status/route.ts
 import { NextResponse } from 'next/server';
-import { createServerAdmin } from '@/lib/supabase/server-admin';
+import { createServerAdmin } from '@/shared/lib/supabase/server-admin';
 
 export async function GET(req: Request) {
     try {

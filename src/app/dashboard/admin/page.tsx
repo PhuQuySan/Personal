@@ -1,12 +1,12 @@
 // src/app/dashboard/admin/page.tsx (Mã đã sửa)
 
-import { createServer } from '@/lib/supabase/server';
+import { createServer } from '@/shared/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Shield } from 'lucide-react';
-import AdminPanelClient from '@/components/AdminPanelClient';
+import AdminPanelClient from '@/features/dashboard/components/AdminPanelClient';
 // 🌟 THÊM: Tắt cache cho Server Component 🌟
 import { unstable_noStore as noStore } from 'next/cache';
-import {UserProfile} from '@/types';
+import {UserProfile} from '@/shared/types';
 // Định nghĩa kiểu cho Profile (Giữ nguyên)
 // interface UserProfile {
 //     full_name: string | null;

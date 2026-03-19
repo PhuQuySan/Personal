@@ -1,7 +1,7 @@
 // src/app/auth/post.actions.ts
 'use server';
 
-import { createServer } from '@/lib/supabase/server';
+import { createServer } from '@/shared/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 /**

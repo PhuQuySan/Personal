@@ -3,7 +3,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/shared/lib/supabase/client';
 import { CheckCircle, Shield, XCircle, Loader2 } from 'lucide-react';
 
 export default function QRConfirmPage() {

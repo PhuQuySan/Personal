@@ -1,11 +1,11 @@
 // src/app/blog/page.tsx
 
-import { createServer } from '@/lib/supabase/server';
+import { createServer } from '@/shared/lib/supabase/server';
 import Link from 'next/link';
 import { BookOpen, Calendar, User, Shield, Lock, Globe, Filter } from 'lucide-react';
-import PostImage from '@/components/PostImage';
-import type { Post, ProfileData } from "@/types";
-import BlogFilter from '@/components/BlogFilter';
+import PostImage from '@/features/blog/components/PostImage';
+import type { Post, ProfileData } from "@/shared/types";
+import BlogFilter from '@/features/blog/components/BlogFilter';
 
 export const revalidate = 3600;
 

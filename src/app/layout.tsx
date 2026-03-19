@@ -2,15 +2,17 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Navigation } from "@/components/Navigation";
+import { Navigation } from "@/shared/components/Navigation";
 import { Toaster } from 'react-hot-toast';
-import { NavigationProvider } from '@/contexts/NavigationContext';
-import { AuthErrorHandler } from '@/components/checkerror/AuthErrorHandler'; // 🔥 THÊM DÒNG NÀY
+import { NavigationProvider } from '@/shared/contexts/NavigationContext';
+import { AuthErrorHandler } from '@/shared/components/checkerror/AuthErrorHandler';
+import { ThemeProvider } from "@/shared/components/theme-provider";
+import { cn } from "@/shared/lib/utils";
 
 const inter = Inter({
     subsets: ["latin", "vietnamese"],
     display: 'swap',
-    variable: '--font-inter',
+    variable: '--font-sans',
     preload: true,
 });
 
@@ -35,89 +37,80 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="vi" className={inter.variable} data-scroll-behavior="smooth" suppressHydrationWarning>
+        // suppressHydrationWarning ở đây để next-themes hoạt động không lỗi
+        <html lang="vi" suppressHydrationWarning>
         <head>
             <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-            <script
-                dangerouslySetInnerHTML={{
-                    __html: `
-                        (function() {
-                            try {
-                                const theme = localStorage.getItem('theme');
-                                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                                
-                                if (theme === 'dark' || (!theme && prefersDark)) {
-                                    document.documentElement.classList.add('dark');
-                                } else {
-                                    document.documentElement.classList.remove('dark');
-                                }
-                                
-                                document.documentElement.classList.add('preload');
-                            } catch (e) {}
-                        })();
-                    `,
+        </head>
+
+        <body
+            // 🔥 SỬA LỖI Ở ĐÂY: Thêm suppressHydrationWarning={true}
+            // Lý do: Đoạn script phía dưới tự ý thêm class 'vertical-layout'
+            // khiến React báo lỗi lệch pha giữa Server và Client.
+            suppressHydrationWarning={true}
+            className={cn(
+                "min-h-screen bg-background font-sans antialiased transition-colors duration-300",
+                inter.variable
+            )}
+        >
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
+            <AuthErrorHandler />
+
+            <NavigationProvider>
+                <Navigation />
+                <main className="min-h-screen lg:ml-0 transition-all duration-300">
+                    {children}
+                </main>
+            </NavigationProvider>
+
+            <Toaster
+                position="top-center"
+                reverseOrder={false}
+                toastOptions={{
+                    duration: 4000,
+                    style: {
+                        background: 'var(--toast-bg, #1e293b)',
+                        color: 'var(--toast-color, #fff)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                    },
+                    success: {
+                        iconTheme: { primary: '#10B981', secondary: '#fff' },
+                    },
+                    error: {
+                        iconTheme: { primary: '#EF4444', secondary: '#fff' },
+                    },
                 }}
             />
-        </head>
-        <body className={`${inter.className} antialiased bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 transition-colors duration-300`} suppressHydrationWarning>
-
-        {/* 🔥 THÊM DÒNG NÀY */}
-        <AuthErrorHandler />
-
-        <NavigationProvider>
-            <Navigation />
-            <main className="min-h-screen lg:ml-0 transition-all duration-300">
-                {children}
-            </main>
-        </NavigationProvider>
-
-        <Toaster
-            position="top-center"
-            reverseOrder={false}
-            toastOptions={{
-                duration: 4000,
-                style: {
-                    background: 'var(--toast-bg, #1e293b)',
-                    color: 'var(--toast-color, #fff)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                },
-                success: {
-                    iconTheme: { primary: '#10B981', secondary: '#fff' },
-                },
-                error: {
-                    iconTheme: { primary: '#EF4444', secondary: '#fff' },
-                },
-            }}
-        />
+        </ThemeProvider>
 
         <script
             dangerouslySetInnerHTML={{
                 __html: `
-                    (function() {
-                        window.addEventListener('load', function() {
-                            setTimeout(function() {
-                                document.documentElement.classList.remove('preload');
-                            }, 100);
-                        });
-
-                        if ('requestIdleCallback' in window) {
-                            requestIdleCallback(function() {
-                                const routes = ['/', '/blog', '/dashboard', '/login'];
-                                routes.forEach(function(route) {
-                                    const link = document.createElement('link');
-                                    link.rel = 'prefetch';
-                                    link.href = route;
-                                    document.head.appendChild(link);
+                        (function() {
+                            if ('requestIdleCallback' in window) {
+                                requestIdleCallback(function() {
+                                    const routes = ['/', '/blog', '/dashboard', '/login'];
+                                    routes.forEach(function(route) {
+                                        const link = document.createElement('link');
+                                        link.rel = 'prefetch';
+                                        link.href = route;
+                                        document.head.appendChild(link);
+                                    });
                                 });
-                            });
-                        }
-                        
-                        const layout = localStorage.getItem('nav-layout') || 'vertical';
-                        if (layout === 'vertical') {
-                            document.body.classList.add('vertical-layout');
-                        }
-                    })();
-                `,
+                            }
+                            
+                            // Đây là thủ phạm gây lỗi Hydration nếu không có suppressHydrationWarning ở body
+                            const layout = localStorage.getItem('nav-layout') || 'vertical';
+                            if (layout === 'vertical') {
+                                document.body.classList.add('vertical-layout');
+                            }
+                        })();
+                    `,
             }}
         />
         </body>

@@ -1,0 +1,160 @@
+// src/types/index.ts
+
+// src/types.ts
+
+
+export interface ProfileData {
+    full_name: string | null;
+    avatar_url?: string | null;
+}
+
+export interface MediaItem {
+    id: string;
+    url: string;
+    name: string;
+    size: number;
+    width?: number;
+    height?: number;
+    tags?: string[];
+    layout_x: number;
+    layout_y: number;
+    layout_w: number;
+    layout_h: number;
+    user_id: string;
+    is_public: boolean;
+    created_at: string;
+    profiles?: ProfileData; // Include author profile
+}
+
+export interface Post {
+    id: number;
+    title: string;
+    slug: string;
+    created_at: string;
+    access_level: 'public' | 'elite' | 'super_elite';
+    content?: string;
+    is_published?: boolean;
+    user_id?: string;
+    summary?: string | null;
+    tag?: string | null;
+    featured_image?: string | null;
+    profiles?: ProfileData[] | null;
+}
+
+// Các interface khác giữ nguyên...
+export interface PostData {
+    id?: number;
+    title?: string;
+    slug?: string;
+    summary?: string;
+    content?: string;
+    tag?: string;
+    access_level?: 'public' | 'elite' | 'super_elite';
+    is_published?: boolean;
+    featured_image?: string;
+}
+
+export type ActionResult =
+    | { success: false; error: string; message?: undefined }
+    | { success: true; message: string; error?: undefined };
+
+export interface AdminPanelClientProps {
+    initialPosts: Post[];
+}
+
+export interface PostFormProps {
+    action: (formData: FormData) => Promise<ActionResult>;
+    defaultPost?: PostData;
+}
+
+
+
+
+
+
+
+// Định nghĩa kiểu cho bài viết
+// export interface Post {
+//     id: number;
+//     title: string;
+//     slug: string;
+//     content: string;
+//     is_published: boolean;
+//     access_level: 'public' | 'elite' | 'super_elite';
+//     created_at: string;
+//     profiles: { full_name: string | null }[] | null;
+// }
+
+// Định nghĩa kiểu cho dữ liệu form bài viết
+export interface PostData {
+    id?: number;
+    title?: string;
+    slug?: string;
+    summary?: string;
+    content?: string;
+    tag?: string;
+    access_level?: 'public' | 'elite' | 'super_elite';
+    is_published?: boolean;
+}
+
+// Định nghĩa kiểu cho UserLink
+export interface UserLink {
+    id: number;
+    user_id: string;
+    link_name: string;
+    link_url: string;
+    description: string | null;
+    image_url: string | null;  // ← Thêm dòng này nếu chưa có
+    sort_order: number;
+    created_at: string;
+    updated_at?: string;
+}
+
+
+// Định nghĩa kiểu cho kết quả action
+// export type ActionResult =
+//     | { error: string; success?: undefined; }
+//     | { success: boolean; error?: undefined; message?: string; };
+
+// Định nghĩa kiểu cho props của AdminPanelClient
+export interface AdminPanelClientProps {
+    initialPosts: Post[];
+}
+
+// Định nghĩa kiểu cho props của PostForm
+export interface PostFormProps {
+    action: (formData: FormData) => Promise<ActionResult>;
+    defaultPost?: PostData;
+}
+
+// Định nghĩa kiểu cho props của LinkForm
+export interface LinkFormProps {
+    action: (formData: FormData) => Promise<ActionResult>;
+    defaultLink?: UserLink;
+    isPending?: boolean;
+}
+
+// Định nghĩa kiểu cho props của RichTextEditor
+export interface RichTextEditorProps {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+}
+
+export type UserRole = 'normal' | 'elite' | 'super_elite' | 'demo';
+
+export interface UserProfile {
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+    user_role: UserRole;  // Đổi từ "role" thành "user_role"
+}
+
+// Thêm interface cho NavLink để Navigation dùng luôn
+export interface NavLink {
+    name: string;
+    href: string;
+    icon: React.ReactNode;
+    requiredRoles?: UserRole[];
+    hiddenOnMobile?: boolean;
+}

@@ -1,15 +1,16 @@
 // src/app/dashboard/page.tsx
 // 🌟 SERVER COMPONENT 🌟
 
-import { createServer } from '@/lib/supabase/server';
+import { createServer } from '@/shared/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import DashboardClient from '@/components/DashboardClient';
+import DashboardClient from '@/features/dashboard/components/DashboardClient';
 import { User } from '@supabase/supabase-js';
-import { UserProfile, UserLink } from '@/types';
+import { UserProfile, UserLink } from '@/shared/types';
 
 // Dữ liệu Demo
 const DEMO_PROFILE: UserProfile = {
+    id: "demo",
     full_name: "Normal User Demo",
     avatar_url: null,
     user_role: "demo",

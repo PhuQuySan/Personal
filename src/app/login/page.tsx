@@ -5,8 +5,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Zap, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { Suspense, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { QRLoginModal } from '@/components/QRMethod/QRLoginModal';
+import { createClient } from '@/shared/lib/supabase/client';
+import { QRLoginModal } from '@/features/auth/components/QRMethod/QRLoginModal';
 
 
 function LoginContent() {

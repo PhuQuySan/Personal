@@ -1,7 +1,7 @@
 // src/app/qr-test/page.tsx
 'use client';
 
-import { useQRLogin } from '@/hooks/useQRLogin'; // Điều chỉnh đường dẫn hook của bạn
+import { useQRLogin } from '@/features/auth/hooks/useQRLogin'; // Điều chỉnh đường dẫn hook của bạn
 import { useState } from 'react';
 
 export default function QRTestPage() {

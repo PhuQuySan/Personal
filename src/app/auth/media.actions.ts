@@ -1,7 +1,7 @@
 // // src/app/auth/media.actions.ts
 // 'use server';
 //rác
-// import { createServer } from '@/lib/supabase/server';
+// import { createServer } from '@/shared/lib/supabase/server';
 // import { revalidatePath } from 'next/cache';
 //
 // // Xử lý tải lên hình ảnh lên Supabase Storage

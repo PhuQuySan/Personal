@@ -1,7 +1,7 @@
 // src/app/test-storage/page.tsx
 'use client';
 
-import { checkBucketExists, listBucketFiles, uploadImage } from '@/lib/upload/upload-utils';
+import { checkBucketExists, listBucketFiles, uploadImage } from '@/shared/lib/upload/upload-utils';
 import { useEffect, useState } from 'react';
 
 export default function TestStoragePage() {

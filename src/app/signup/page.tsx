@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { UserPlus, Mail, Lock, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
 import { Suspense, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/shared/lib/supabase/client';
 
 function SignUpContent() {
     const searchParams = useSearchParams();

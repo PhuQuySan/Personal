@@ -1,7 +1,7 @@
 // src/app/dashboard/saved-posts/page.tsx
-import { createServer } from '@/lib/supabase/server';
+import { createServer } from '@/shared/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import SavedPostsClient from '@/components/Post/SAVEPOST/SavedPostsClient';
+import SavedPostsClient from '@/features/blog/components/Post/SAVEPOST/SavedPostsClient';
 
 export default async function SavedPostsPage() {
     const supabase = await createServer();

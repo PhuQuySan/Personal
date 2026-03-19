@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Mail, CheckCircle, Clock, ArrowRight, RefreshCw, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/shared/lib/supabase/client';
 
 export default function EmailVerificationPage() {
     const [isResending, setIsResending] = useState(false);

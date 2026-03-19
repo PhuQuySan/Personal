@@ -1,13 +1,13 @@
 // src/app/blog/[slug]/page.tsx
-import { createServer } from '@/lib/supabase/server';
+import { createServer } from '@/shared/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { Calendar, User, Lock, Shield, Globe, Clock, ArrowLeft, Share2 } from 'lucide-react';
 import Link from "next/link";
-import PostImage from '@/components/PostImage';
-import ShareButtons from '@/components/Post/SAVEPOST/ShareButtons';
-import RelatedPosts from '@/components/RelatedPosts';
-import SaveButton from '@/components/Post/SAVEPOST/SaveButton';
-import type { ProfileData } from '@/types';
+import PostImage from '@/features/blog/components/PostImage';
+import ShareButtons from '@/features/blog/components/Post/SAVEPOST/ShareButtons';
+import RelatedPosts from '@/features/blog/components/RelatedPosts';
+import SaveButton from '@/features/blog/components/Post/SAVEPOST/SaveButton';
+import type { ProfileData } from '@/shared/types';
 
 interface PostPageProps {
     params: Promise<{

@@ -1,7 +1,7 @@
 // src/app/dashboard/settings/page.tsx
-import { createServer } from '@/lib/supabase/server';
+import { createServer } from '@/shared/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import SettingsClient from '@/components/SettingsClient';
+import SettingsClient from '@/features/dashboard/components/SettingsClient';
 
 export default async function SettingsPage() {
     const supabase = await createServer();

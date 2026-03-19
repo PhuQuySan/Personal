@@ -1,7 +1,7 @@
 // src/app/auth/actions.ts
 'use server';
 
-import { createServer } from '@/lib/supabase/server';
+import { createServer } from '@/shared/lib/supabase/server';
 import { headers, cookies } from 'next/headers'; // Không cần await ở đây
 import { redirect } from 'next/navigation';
 import { DEMO_USERNAME, DEMO_PASSWORD } from './constants';

@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/shared/lib/supabase/client';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 export default function MagicLinkHandler() {
